@@ -2,6 +2,8 @@ import Link from 'next/link'
 import Navbar from '@/app/components/Navbar'
 import { supabase } from '@/lib/supabase'
 import type { Lote, LoteEstado } from '@/lib/supabase'
+import DeleteLoteButton from './DeleteLoteButton'
+import { deleteLote } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,8 +89,8 @@ export default async function LotesPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 text-left">
-                    {['Nombre', 'Nave', 'Fecha Entrada', 'Núm. Pollos', 'Ciclo', 'Estado', ''].map((h) => (
-                      <th key={h} className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                    {['Nombre', 'Nave', 'Fecha Entrada', 'Núm. Pollos', 'Ciclo', 'Estado', '', ''].map((h, i) => (
+                      <th key={i} className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
                         {h}
                       </th>
                     ))}
@@ -116,6 +118,12 @@ export default async function LotesPage() {
                         >
                           Ver detalle →
                         </Link>
+                      </td>
+                      <td className="px-3 py-4">
+                        <DeleteLoteButton
+                          action={deleteLote.bind(null, lote.id)}
+                          loteName={lote.nombre}
+                        />
                       </td>
                     </tr>
                   ))}

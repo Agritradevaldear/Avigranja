@@ -44,3 +44,12 @@ export async function createLote(
   revalidatePath('/lotes')
   redirect('/lotes')
 }
+
+// ─── Delete lote (cascade handled by DB constraints) ─────────────────────────
+
+export async function deleteLote(id: number): Promise<void> {
+  await supabase.from('lotes').delete().eq('id', id)
+  revalidatePath('/')
+  revalidatePath('/lotes')
+  redirect('/lotes')
+}

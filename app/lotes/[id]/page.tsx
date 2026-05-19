@@ -6,6 +6,8 @@ import type { Lote, Mortalidad, Pesaje, Alimentacion } from '@/lib/supabase'
 import MortalidadForm from './MortalidadForm'
 import PesajeForm from './PesajeForm'
 import AlimentacionForm from './AlimentacionForm'
+import DeleteButton from './DeleteButton'
+import { deleteMortalidad, deletePesaje, deleteAlimentacion } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -168,7 +170,7 @@ export default async function LoteDetallePage({
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 text-left">
-                      {['Fecha', 'Bajas', 'Observaciones'].map(h => (
+                      {['Fecha', 'Bajas', 'Observaciones', ''].map(h => (
                         <th key={h} className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
                       ))}
                     </tr>
@@ -182,6 +184,9 @@ export default async function LoteDetallePage({
                         </td>
                         <td className="px-5 py-3 text-gray-500 text-xs max-w-[180px] truncate">
                           {m.observaciones ?? <span className="italic text-gray-300">—</span>}
+                        </td>
+                        <td className="px-3 py-3">
+                          <DeleteButton action={deleteMortalidad.bind(null, m.id, loteId)} />
                         </td>
                       </tr>
                     ))}
@@ -206,7 +211,7 @@ export default async function LoteDetallePage({
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 text-left">
-                      {['Sem.', 'Real', 'Ross 308', 'Diferencia', 'Cumpl.'].map(h => (
+                      {['Sem.', 'Real', 'Ross 308', 'Diferencia', 'Cumpl.', ''].map(h => (
                         <th key={h} className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
                       ))}
                     </tr>
@@ -225,6 +230,9 @@ export default async function LoteDetallePage({
                           </td>
                           <td className="px-5 py-3 w-28">
                             {pct !== null ? <ComplianceBar pct={pct} /> : <span className="text-gray-400 text-xs">—</span>}
+                          </td>
+                          <td className="px-3 py-3">
+                            <DeleteButton action={deletePesaje.bind(null, p.id, loteId)} />
                           </td>
                         </tr>
                       )
@@ -255,7 +263,7 @@ export default async function LoteDetallePage({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 text-left">
-                    {['Semana', 'Consumo real', 'Objetivo Ross 308', 'Diferencia', 'Cumplimiento'].map(h => (
+                    {['Semana', 'Consumo real', 'Objetivo Ross 308', 'Diferencia', 'Cumplimiento', ''].map(h => (
                       <th key={h} className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
@@ -283,6 +291,9 @@ export default async function LoteDetallePage({
                         </td>
                         <td className="px-5 py-4 w-36">
                           {pct !== null ? <ComplianceBar pct={pct} /> : <span className="text-gray-400 text-xs">—</span>}
+                        </td>
+                        <td className="px-3 py-4">
+                          <DeleteButton action={deleteAlimentacion.bind(null, a.id, loteId)} />
                         </td>
                       </tr>
                     )

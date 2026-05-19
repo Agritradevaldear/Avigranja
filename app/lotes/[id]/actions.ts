@@ -6,6 +6,23 @@ import { redirect } from 'next/navigation'
 
 export type ActionState = { error: string } | null
 
+// ─── Delete records ───────────────────────────────────────────────────────────
+
+export async function deleteMortalidad(id: number, loteId: number): Promise<void> {
+  await supabase.from('mortalidad').delete().eq('id', id)
+  revalidatePath(`/lotes/${loteId}`)
+}
+
+export async function deletePesaje(id: number, loteId: number): Promise<void> {
+  await supabase.from('pesajes').delete().eq('id', id)
+  revalidatePath(`/lotes/${loteId}`)
+}
+
+export async function deleteAlimentacion(id: number, loteId: number): Promise<void> {
+  await supabase.from('alimentacion').delete().eq('id', id)
+  revalidatePath(`/lotes/${loteId}`)
+}
+
 // ─── Mortalidad ───────────────────────────────────────────────────────────────
 
 export async function createMortalidad(
