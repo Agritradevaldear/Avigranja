@@ -2,20 +2,25 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Navbar from '@/app/components/Navbar'
 import { supabase } from '@/lib/supabase'
-import type { Lote, Mortalidad, Pesaje } from '@/lib/supabase'
+import type { Lote, Mortalidad, Pesaje, Alimentacion } from '@/lib/supabase'
 import MortalidadForm from './MortalidadForm'
 import PesajeForm from './PesajeForm'
+import AlimentacionForm from './AlimentacionForm'
 
 export const dynamic = 'force-dynamic'
 
-const ROSS_308: Record<number, number> = {
-  1: 0.20,
-  2: 0.50,
-  3: 0.95,
-  4: 1.50,
-  5: 2.10,
-  6: 2.60,
+// ─── Ross 308 standards ───────────────────────────────────────────────────────
+
+const ROSS_PESO: Record<number, number> = {
+  1: 0.20, 2: 0.50, 3: 0.95, 4: 1.50, 5: 2.10, 6: 2.60,
 }
+
+// kg per 1000 birds per week
+const ROSS_ALIM_PER_1000: Record<number, number> = {
+  1: 200, 2: 350, 3: 550, 4: 800, 5: 900, 6: 500,
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getSemana(fechaEntrada: string) {
   const days = Math.floor(
@@ -26,13 +31,34 @@ function getSemana(fechaEntrada: string) {
 
 function formatDate(dateStr: string) {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('es-ES', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
+    day: '2-digit', month: 'short', year: 'numeric',
   })
 }
 
-function DiffCell({ real, standard }: { real: number; standard: number }) {
+function ComplianceBar({ pct }: { pct: number }) {
+  const color = pct >= 98 ? 'bg-[#1D9E75]' : pct >= 90 ? 'bg-yellow-400' : 'bg-red-400'
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(pct, 100)}%` }} />
+      </div>
+      <span className="text-xs text-gray-500 tabular-nums w-9 text-right">{pct.toFixed(0)}%</span>
+    </div>
+  )
+}
+
+function DiffKg({ real, standard }: { real: number; standard: number }) {
+  const diff = real - standard
+  const pct = ((diff / standard) * 100).toFixed(1)
+  const up = diff >= 0
+  return (
+    <span className={`text-xs font-medium ${up ? 'text-green-600' : 'text-red-500'}`}>
+      {up ? '▲' : '▼'} {Math.abs(diff).toLocaleString('es-ES', { maximumFractionDigits: 0 })} kg ({up ? '+' : ''}{pct}%)
+    </span>
+  )
+}
+
+function DiffPeso({ real, standard }: { real: number; standard: number }) {
   const diff = real - standard
   const pct = ((diff / standard) * 100).toFixed(1)
   const up = diff >= 0
@@ -43,6 +69,8 @@ function DiffCell({ real, standard }: { real: number; standard: number }) {
   )
 }
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default async function LoteDetallePage({
   params,
 }: {
@@ -50,33 +78,27 @@ export default async function LoteDetallePage({
 }) {
   const { id } = await params
   const loteId = parseInt(id, 10)
-
   if (isNaN(loteId)) notFound()
 
-  // ─── Parallel data fetch ──────────────────────────────────────────────────
-  const [loteRes, mortRes, pesajesRes] = await Promise.all([
+  const [loteRes, mortRes, pesajesRes, alimentacionRes] = await Promise.all([
     supabase.from('lotes').select('*').eq('id', loteId).single(),
-    supabase
-      .from('mortalidad')
-      .select('*')
-      .eq('lote_id', loteId)
-      .order('fecha', { ascending: false })
-      .limit(10),
-    supabase
-      .from('pesajes')
-      .select('*')
-      .eq('lote_id', loteId)
+    supabase.from('mortalidad').select('*').eq('lote_id', loteId)
+      .order('fecha', { ascending: false }).limit(10),
+    supabase.from('pesajes').select('*').eq('lote_id', loteId)
+      .order('semana', { ascending: true }),
+    supabase.from('alimentacion').select('*').eq('lote_id', loteId)
       .order('semana', { ascending: true }),
   ])
 
   if (!loteRes.data) notFound()
 
-  const lote = loteRes.data as Lote
-  const mortalidad = (mortRes.data ?? []) as Mortalidad[]
-  const pesajes = (pesajesRes.data ?? []) as Pesaje[]
+  const lote         = loteRes.data as Lote
+  const mortalidad   = (mortRes.data        ?? []) as Mortalidad[]
+  const pesajes      = (pesajesRes.data     ?? []) as Pesaje[]
+  const alimentacion = (alimentacionRes.data ?? []) as Alimentacion[]
 
   const semanaActual = getSemana(lote.fecha_entrada)
-  const daysActive = Math.floor(
+  const daysActive   = Math.floor(
     (Date.now() - new Date(lote.fecha_entrada + 'T00:00:00').getTime()) / 86_400_000,
   )
   const totalMort = mortalidad.reduce((s, r) => s + r.cantidad, 0)
@@ -108,11 +130,11 @@ export default async function LoteDetallePage({
           </span>
         </div>
 
-        {/* Info cards row */}
+        {/* Info cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           {[
-            { label: 'Nave', value: lote.nave },
-            { label: 'Fecha entrada', value: formatDate(lote.fecha_entrada) },
+            { label: 'Nave',             value: lote.nave },
+            { label: 'Fecha entrada',    value: formatDate(lote.fecha_entrada) },
             { label: 'Pollos iniciales', value: lote.num_pollos.toLocaleString('es-ES') },
             { label: 'Mortalidad acum.', value: totalMort.toLocaleString('es-ES') },
           ].map(({ label, value }) => (
@@ -123,14 +145,15 @@ export default async function LoteDetallePage({
           ))}
         </div>
 
-        {/* Forms row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <MortalidadForm loteId={loteId} />
-          <PesajeForm loteId={loteId} />
+        {/* Forms — 3 columns */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <MortalidadForm   loteId={loteId} />
+          <PesajeForm       loteId={loteId} />
+          <AlimentacionForm loteId={loteId} />
         </div>
 
-        {/* History row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* History — mortalidad + pesajes */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
 
           {/* Mortalidad history */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -139,25 +162,21 @@ export default async function LoteDetallePage({
               <p className="text-sm text-gray-500 mt-0.5">Últimas 10 entradas</p>
             </div>
             {mortalidad.length === 0 ? (
-              <p className="px-5 py-8 text-center text-sm text-gray-400">
-                Sin registros de mortalidad aún.
-              </p>
+              <p className="px-5 py-8 text-center text-sm text-gray-400">Sin registros aún.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 text-left">
-                      <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Fecha</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Bajas</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Observaciones</th>
+                      {['Fecha', 'Bajas', 'Observaciones'].map(h => (
+                        <th key={h} className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {mortalidad.map((m) => (
                       <tr key={m.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-3 text-gray-600 whitespace-nowrap">
-                          {formatDate(m.fecha)}
-                        </td>
+                        <td className="px-5 py-3 text-gray-600 whitespace-nowrap">{formatDate(m.fecha)}</td>
                         <td className="px-5 py-3 font-semibold text-red-600 tabular-nums">
                           {m.cantidad.toLocaleString('es-ES')}
                         </td>
@@ -172,69 +191,40 @@ export default async function LoteDetallePage({
             )}
           </div>
 
-          {/* Pesajes history vs Ross 308 */}
+          {/* Pesajes vs Ross 308 */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100">
               <h2 className="text-base font-semibold text-gray-800">Curva de peso vs Ross 308</h2>
-              <p className="text-sm text-gray-500 mt-0.5">{pesajes.length} semana{pesajes.length !== 1 ? 's' : ''} registrada{pesajes.length !== 1 ? 's' : ''}</p>
+              <p className="text-sm text-gray-500 mt-0.5">
+                {pesajes.length} semana{pesajes.length !== 1 ? 's' : ''} registrada{pesajes.length !== 1 ? 's' : ''}
+              </p>
             </div>
             {pesajes.length === 0 ? (
-              <p className="px-5 py-8 text-center text-sm text-gray-400">
-                Sin pesajes registrados aún.
-              </p>
+              <p className="px-5 py-8 text-center text-sm text-gray-400">Sin pesajes registrados aún.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 text-left">
-                      <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Sem.</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Real</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Ross 308</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Diferencia</th>
-                      <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-28">Cumpl.</th>
+                      {['Sem.', 'Real', 'Ross 308', 'Diferencia', 'Cumpl.'].map(h => (
+                        <th key={h} className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {pesajes.map((p) => {
-                      const standard = ROSS_308[p.semana]
-                      const pct = standard ? (p.peso_real_kg / standard) * 100 : null
-                      const barColor =
-                        pct === null ? 'bg-gray-200'
-                          : pct >= 98 ? 'bg-[#1D9E75]'
-                          : pct >= 90 ? 'bg-yellow-400'
-                          : 'bg-red-400'
+                      const std = ROSS_PESO[p.semana]
+                      const pct = std ? (p.peso_real_kg / std) * 100 : null
                       return (
                         <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-5 py-3 font-semibold text-gray-800">S{p.semana}</td>
-                          <td className="px-5 py-3 font-medium text-gray-800 tabular-nums">
-                            {p.peso_real_kg.toFixed(3)} kg
-                          </td>
-                          <td className="px-5 py-3 text-gray-500 tabular-nums">
-                            {standard ? `${standard.toFixed(2)} kg` : '—'}
-                          </td>
+                          <td className="px-5 py-3 font-medium text-gray-800 tabular-nums">{p.peso_real_kg.toFixed(3)} kg</td>
+                          <td className="px-5 py-3 text-gray-500 tabular-nums">{std ? `${std.toFixed(2)} kg` : '—'}</td>
                           <td className="px-5 py-3">
-                            {standard ? (
-                              <DiffCell real={p.peso_real_kg} standard={standard} />
-                            ) : (
-                              <span className="text-gray-400 text-xs">—</span>
-                            )}
+                            {std ? <DiffPeso real={p.peso_real_kg} standard={std} /> : <span className="text-gray-400 text-xs">—</span>}
                           </td>
-                          <td className="px-5 py-3">
-                            {pct !== null ? (
-                              <div className="flex items-center gap-2">
-                                <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full ${barColor}`}
-                                    style={{ width: `${Math.min(pct, 100)}%` }}
-                                  />
-                                </div>
-                                <span className="text-xs text-gray-500 tabular-nums w-9 text-right">
-                                  {pct.toFixed(0)}%
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-gray-400 text-xs">—</span>
-                            )}
+                          <td className="px-5 py-3 w-28">
+                            {pct !== null ? <ComplianceBar pct={pct} /> : <span className="text-gray-400 text-xs">—</span>}
                           </td>
                         </tr>
                       )
@@ -246,6 +236,63 @@ export default async function LoteDetallePage({
           </div>
 
         </div>
+
+        {/* Alimentación vs Ross 308 — full width */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="text-base font-semibold text-gray-800">Consumo de alimento vs Ross 308</h2>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Objetivo calculado sobre {lote.num_pollos.toLocaleString('es-ES')} pollos ·{' '}
+              {alimentacion.length} semana{alimentacion.length !== 1 ? 's' : ''} registrada{alimentacion.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+          {alimentacion.length === 0 ? (
+            <p className="px-5 py-8 text-center text-sm text-gray-400">
+              Sin registros de alimentación aún.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 text-left">
+                    {['Semana', 'Consumo real', 'Objetivo Ross 308', 'Diferencia', 'Cumplimiento'].map(h => (
+                      <th key={h} className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {alimentacion.map((a) => {
+                    const stdPer1000 = ROSS_ALIM_PER_1000[a.semana]
+                    const objetivo = stdPer1000 ? (stdPer1000 / 1000) * lote.num_pollos : null
+                    const pct = objetivo ? (a.consumo_real_kg / objetivo) * 100 : null
+                    return (
+                      <tr key={a.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-5 py-4 font-semibold text-gray-800">Semana {a.semana}</td>
+                        <td className="px-5 py-4 font-medium text-gray-800 tabular-nums">
+                          {a.consumo_real_kg.toLocaleString('es-ES', { maximumFractionDigits: 1 })} kg
+                        </td>
+                        <td className="px-5 py-4 text-gray-500 tabular-nums">
+                          {objetivo
+                            ? `${objetivo.toLocaleString('es-ES', { maximumFractionDigits: 0 })} kg`
+                            : '—'}
+                        </td>
+                        <td className="px-5 py-4">
+                          {objetivo
+                            ? <DiffKg real={a.consumo_real_kg} standard={objetivo} />
+                            : <span className="text-gray-400 text-xs">—</span>}
+                        </td>
+                        <td className="px-5 py-4 w-36">
+                          {pct !== null ? <ComplianceBar pct={pct} /> : <span className="text-gray-400 text-xs">—</span>}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
       </main>
     </div>
   )

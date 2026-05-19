@@ -34,6 +34,41 @@ export async function createMortalidad(
   redirect(`/lotes/${lote_id}`)
 }
 
+// ─── Alimentación ────────────────────────────────────────────────────────────
+
+export async function createAlimentacion(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const lote_id = parseInt(formData.get('lote_id') as string, 10)
+  const semana_raw = formData.get('semana') as string
+  const consumo_raw = formData.get('consumo_real_kg') as string
+
+  const semana = parseInt(semana_raw, 10)
+  if (isNaN(semana) || semana < 1 || semana > 6) {
+    return { error: 'La semana debe estar entre 1 y 6.' }
+  }
+
+  const consumo_real_kg = parseFloat(consumo_raw)
+  if (isNaN(consumo_real_kg) || consumo_real_kg <= 0) {
+    return { error: 'El consumo debe ser un número positivo.' }
+  }
+
+  const { error } = await supabase
+    .from('alimentacion')
+    .insert({ lote_id, semana, consumo_real_kg })
+
+  if (error) {
+    if (error.code === '23505') {
+      return { error: `Ya existe un registro de alimentación para la semana ${semana} de este lote.` }
+    }
+    return { error: `Error al guardar: ${error.message}` }
+  }
+
+  revalidatePath(`/lotes/${lote_id}`)
+  redirect(`/lotes/${lote_id}`)
+}
+
 // ─── Pesaje ───────────────────────────────────────────────────────────────────
 
 export async function createPesaje(
