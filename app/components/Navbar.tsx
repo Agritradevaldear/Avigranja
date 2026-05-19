@@ -6,8 +6,7 @@ import { usePathname } from 'next/navigation'
 const NAV_LINKS = [
   { label: 'Dashboard', href: '/' },
   { label: 'Lotes', href: '/lotes' },
-  { label: 'Costos', href: '/costos' },
-  { label: 'Reportes', href: '/reportes' },
+  { label: 'Configuración', href: '/configuracion' },
 ]
 
 export default function Navbar() {

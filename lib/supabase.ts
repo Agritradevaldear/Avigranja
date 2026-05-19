@@ -48,3 +48,25 @@ export interface Alimentacion {
   consumo_real_kg: number
   created_at: string
 }
+
+export interface CostosConfig {
+  id: number
+  precio_pollito: number
+  precio_alimento_kg: number
+  medicina_por_pollo: number
+  crianza_entrada_por_pollo: number
+  crianza_salida_por_pollo: number
+  precio_venta_kg: number
+  created_at: string
+}
+
+export interface Venta {
+  id: number
+  lote_id: number
+  fecha_venta: string
+  peso_total_kg: number
+  precio_kg: number
+  merma_kg: number
+  comprador: string | null
+  created_at: string
+}

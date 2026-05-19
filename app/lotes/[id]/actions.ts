@@ -23,6 +23,38 @@ export async function deleteAlimentacion(id: number, loteId: number): Promise<vo
   revalidatePath(`/lotes/${loteId}`)
 }
 
+// ─── Venta ────────────────────────────────────────────────────────────────────
+
+export async function createVenta(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const lote_id      = parseInt(formData.get('lote_id') as string, 10)
+  const fecha_venta  = (formData.get('fecha_venta') as string)?.trim()
+  const peso_total_kg = parseFloat(formData.get('peso_total_kg') as string)
+  const precio_kg    = parseFloat(formData.get('precio_kg') as string)
+  const merma_kg     = parseFloat(formData.get('merma_kg') as string) || 0
+  const comprador    = (formData.get('comprador') as string)?.trim() || null
+
+  if (!fecha_venta) return { error: 'La fecha de venta es obligatoria.' }
+  if (isNaN(peso_total_kg) || peso_total_kg <= 0) return { error: 'El peso total debe ser un número positivo.' }
+  if (isNaN(precio_kg) || precio_kg <= 0) return { error: 'El precio por kg debe ser un número positivo.' }
+  if (merma_kg < 0) return { error: 'La merma no puede ser negativa.' }
+
+  const { error: ventaError } = await supabase
+    .from('ventas')
+    .insert({ lote_id, fecha_venta, peso_total_kg, precio_kg, merma_kg, comprador })
+
+  if (ventaError) return { error: `Error al registrar la venta: ${ventaError.message}` }
+
+  await supabase.from('lotes').update({ estado: 'finalizado' }).eq('id', lote_id)
+
+  revalidatePath(`/lotes/${lote_id}`)
+  revalidatePath('/lotes')
+  revalidatePath('/')
+  redirect(`/lotes/${lote_id}`)
+}
+
 // ─── Mortalidad ───────────────────────────────────────────────────────────────
 
 export async function createMortalidad(

@@ -7,6 +7,7 @@ import MortalidadForm from './MortalidadForm'
 import PesajeForm from './PesajeForm'
 import AlimentacionForm from './AlimentacionForm'
 import DeleteButton from './DeleteButton'
+import VentaForm from './VentaForm'
 import { deleteMortalidad, deletePesaje, deleteAlimentacion } from './actions'
 
 export const dynamic = 'force-dynamic'
@@ -303,6 +304,13 @@ export default async function LoteDetallePage({
             </div>
           )}
         </div>
+
+        {/* Venta / cierre de lote */}
+        {lote.estado === 'activo' && (
+          <div className="mt-4 max-w-xl">
+            <VentaForm loteId={loteId} />
+          </div>
+        )}
 
       </main>
     </div>
