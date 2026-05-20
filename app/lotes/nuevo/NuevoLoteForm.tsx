@@ -1,11 +1,10 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { createLote, type ActionState } from '@/app/lotes/actions'
 
 const NAVES = ['Nave A', 'Nave B', 'Nave C']
-
 const todayISO = new Date().toISOString().split('T')[0]
 
 function FieldLabel({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
@@ -21,8 +20,22 @@ const inputClass =
   'text-zinc-800 dark:text-zinc-100 bg-white dark:bg-zinc-800 placeholder-zinc-400 dark:placeholder-zinc-500 ' +
   'focus:outline-none focus:ring-2 focus:ring-[#1D9E75] focus:border-transparent transition'
 
-export default function NuevoLoteForm() {
+interface Props {
+  precioPollito?: number
+}
+
+export default function NuevoLoteForm({ precioPollito = 0 }: Props) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createLote, null)
+
+  const [numPollosStr, setNumPollosStr]   = useState('')
+  const [precioPollStr, setPrecioPollStr] = useState(precioPollito > 0 ? String(precioPollito) : '')
+
+  const numPollos  = parseInt(numPollosStr, 10)
+  const precioPoll = parseFloat(precioPollStr)
+  const totalPollito =
+    !isNaN(numPollos) && numPollos > 0 && !isNaN(precioPoll) && precioPoll > 0
+      ? numPollos * precioPoll
+      : null
 
   return (
     <form action={action} className="space-y-5">
@@ -67,12 +80,54 @@ export default function NuevoLoteForm() {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <FieldLabel htmlFor="num_pollos">Número de pollos</FieldLabel>
-          <input id="num_pollos" name="num_pollos" type="number" required min={1} max={500000} placeholder="Ej: 114000" className={inputClass} />
+          <input
+            id="num_pollos"
+            name="num_pollos"
+            type="number"
+            required
+            min={1}
+            max={500000}
+            placeholder="Ej: 114000"
+            value={numPollosStr}
+            onChange={(e) => setNumPollosStr(e.target.value)}
+            className={inputClass}
+          />
         </div>
         <div>
           <FieldLabel htmlFor="semanas_ciclo">Semanas de ciclo</FieldLabel>
           <input id="semanas_ciclo" name="semanas_ciclo" type="number" required min={1} max={20} defaultValue={6} className={inputClass} />
         </div>
+      </div>
+
+      <div>
+        <FieldLabel htmlFor="precio_pollito">Coste por pollito ($)</FieldLabel>
+        <input
+          id="precio_pollito"
+          name="precio_pollito"
+          type="number"
+          min={0}
+          step={0.001}
+          placeholder="Ej: 0.380"
+          value={precioPollStr}
+          onChange={(e) => setPrecioPollStr(e.target.value)}
+          className={inputClass}
+        />
+        {totalPollito !== null ? (
+          <p className="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400">
+            Total pollitos:{' '}
+            <span className="font-medium text-zinc-700 dark:text-zinc-300">
+              {numPollos.toLocaleString('es-ES')} × ${precioPoll.toFixed(3)}
+            </span>
+            {' = '}
+            <span className="font-semibold text-[#1D9E75]">
+              ${totalPollito.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </p>
+        ) : (
+          <p className="mt-1.5 text-xs text-zinc-400 dark:text-zinc-500">
+            Se registrará automáticamente como gasto del lote.
+          </p>
+        )}
       </div>
 
       <div className="flex gap-3 pt-2">

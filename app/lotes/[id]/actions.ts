@@ -30,7 +30,7 @@ export async function deleteGasto(id: number, loteId: number): Promise<void> {
 
 // ─── Gastos ───────────────────────────────────────────────────────────────────
 
-const CATEGORIAS = ['Pienso', 'Medicina', 'Crianza', 'Concha de arroz', 'Otros'] as const
+const CATEGORIAS = ['Pollito', 'Pienso', 'Medicina', 'Crianza', 'Concha de arroz', 'Otros'] as const
 
 export async function createGasto(
   _prevState: ActionState,

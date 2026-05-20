@@ -25,9 +25,10 @@ const ROSS_ALIM_PER_1000: Record<number, number> = {
 
 const PESO_SALIDA_KG = 2.60
 
-const CATEGORIAS_PL = ['Pienso', 'Medicina', 'Crianza', 'Concha de arroz', 'Otros'] as const
+const CATEGORIAS_PL = ['Pollito', 'Pienso', 'Medicina', 'Crianza', 'Concha de arroz', 'Otros'] as const
 
 const CATEGORIA_BADGE: Record<string, string> = {
+  'Pollito':         'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400',
   'Pienso':          'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400',
   'Medicina':        'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400',
   'Crianza':         'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400',
@@ -151,12 +152,12 @@ export default async function LoteDetallePage({
     costoTotal = totalGastos
     costBreakdown = { ...byCategoria }
   } else if (config) {
+    const pollito  = lote.num_pollos * config.precio_pollito
     const pienso   = feedTotal * config.precio_alimento_kg
     const medicina = lote.num_pollos * config.medicina_por_pollo
     const crianza  = lote.num_pollos * (config.crianza_entrada_por_pollo + config.crianza_salida_por_pollo)
-    const otros    = lote.num_pollos * config.precio_pollito
-    costoTotal = pienso + medicina + crianza + otros
-    costBreakdown = { 'Pienso': pienso, 'Medicina': medicina, 'Crianza': crianza, 'Concha de arroz': 0, 'Otros': otros }
+    costoTotal = pollito + pienso + medicina + crianza
+    costBreakdown = { 'Pollito': pollito, 'Pienso': pienso, 'Medicina': medicina, 'Crianza': crianza, 'Concha de arroz': 0, 'Otros': 0 }
   } else {
     costoTotal = 0
     costBreakdown = {}

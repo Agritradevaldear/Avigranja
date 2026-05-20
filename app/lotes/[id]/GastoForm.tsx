@@ -5,7 +5,7 @@ import { createGasto, type ActionState } from './actions'
 
 const todayISO = new Date().toISOString().split('T')[0]
 
-const CATEGORIAS = ['Pienso', 'Medicina', 'Crianza', 'Concha de arroz', 'Otros'] as const
+const CATEGORIAS = ['Pollito', 'Pienso', 'Medicina', 'Crianza', 'Concha de arroz', 'Otros'] as const
 
 const inputClass =
   'w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3.5 py-2.5 text-sm ' +

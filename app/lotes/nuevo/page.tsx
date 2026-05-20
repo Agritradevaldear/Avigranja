@@ -1,8 +1,15 @@
 import Link from 'next/link'
 import Navbar from '@/app/components/Navbar'
 import NuevoLoteForm from './NuevoLoteForm'
+import { supabase } from '@/lib/supabase'
+import type { CostosConfig } from '@/lib/supabase'
 
-export default function NuevoLotePage() {
+export const dynamic = 'force-dynamic'
+
+export default async function NuevoLotePage() {
+  const { data: configData } = await supabase.from('costos_config').select('*').limit(1)
+  const config = ((configData as CostosConfig[] | null)?.[0]) ?? null
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -20,7 +27,7 @@ export default function NuevoLotePage() {
 
         <div className="max-w-lg">
           <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-white/60 dark:border-zinc-700/50 shadow-sm p-6">
-            <NuevoLoteForm />
+            <NuevoLoteForm precioPollito={config?.precio_pollito ?? 0} />
           </div>
         </div>
 
