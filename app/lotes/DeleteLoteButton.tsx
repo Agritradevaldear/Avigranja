@@ -21,7 +21,7 @@ export default function DeleteLoteButton({
       onClick={handleClick}
       disabled={pending}
       title={`Borrar ${loteName}`}
-      className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      className="p-1.5 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
     >
       {pending ? (
         <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">

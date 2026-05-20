@@ -5,7 +5,8 @@ import { upsertConfig, type ConfigState } from './actions'
 import type { CostosConfig } from '@/lib/supabase'
 
 const inputClass =
-  'w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-800 ' +
+  'w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3.5 py-2.5 text-sm ' +
+  'text-zinc-800 dark:text-zinc-100 bg-white dark:bg-zinc-800 placeholder-zinc-400 dark:placeholder-zinc-500 ' +
   'focus:outline-none focus:ring-2 focus:ring-[#1D9E75] focus:border-transparent transition'
 
 interface Field {
@@ -16,27 +17,27 @@ interface Field {
 }
 
 const FIELDS: Field[] = [
-  { name: 'precio_pollito',            label: 'Precio pollito ($/ud)',           hint: 'Costo de compra por pollito de 1 día', step: '0.001' },
-  { name: 'precio_alimento_kg',        label: 'Precio alimento ($/kg)',          hint: 'Costo del concentrado por kilogramo', step: '0.001' },
-  { name: 'medicina_por_pollo',        label: 'Medicina ($/pollo)',              hint: 'Costo estimado de medicina y vacunas por ave', step: '0.001' },
-  { name: 'crianza_entrada_por_pollo', label: 'Crianza entrada ($/pollo)',       hint: 'Costo de preparación de nave por ave recibida', step: '0.001' },
-  { name: 'crianza_salida_por_pollo',  label: 'Crianza salida ($/pollo)',        hint: 'Costo de mano de obra y logística de salida por ave', step: '0.001' },
-  { name: 'precio_venta_kg',           label: 'Precio venta estimado ($/kg)',    hint: 'Precio de referencia en canal para proyecciones', step: '0.001' },
+  { name: 'precio_pollito',            label: 'Precio pollito ($/ud)',        hint: 'Costo de compra por pollito de 1 día', step: '0.001' },
+  { name: 'precio_alimento_kg',        label: 'Precio alimento ($/kg)',       hint: 'Costo del concentrado por kilogramo', step: '0.001' },
+  { name: 'medicina_por_pollo',        label: 'Medicina ($/pollo)',           hint: 'Costo estimado de medicina y vacunas por ave', step: '0.001' },
+  { name: 'crianza_entrada_por_pollo', label: 'Crianza entrada ($/pollo)',    hint: 'Costo de preparación de nave por ave recibida', step: '0.001' },
+  { name: 'crianza_salida_por_pollo',  label: 'Crianza salida ($/pollo)',     hint: 'Costo de mano de obra y logística de salida por ave', step: '0.001' },
+  { name: 'precio_venta_kg',           label: 'Precio venta estimado ($/kg)', hint: 'Precio de referencia en canal para proyecciones', step: '0.001' },
 ]
 
 export default function ConfigForm({ config }: { config: CostosConfig }) {
   const [state, action, pending] = useActionState<ConfigState, FormData>(upsertConfig, null)
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm p-6">
       <form action={action} className="space-y-5">
         {'error' in (state ?? {}) && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl px-3 py-2">
             {(state as { error: string }).error}
           </p>
         )}
         {'success' in (state ?? {}) && (
-          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+          <p className="text-sm text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 rounded-xl px-3 py-2">
             Configuración guardada correctamente.
           </p>
         )}
@@ -44,7 +45,7 @@ export default function ConfigForm({ config }: { config: CostosConfig }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           {FIELDS.map(({ name, label, hint, step }) => (
             <div key={name}>
-              <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor={name} className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
                 {label}
               </label>
               <input
@@ -57,16 +58,16 @@ export default function ConfigForm({ config }: { config: CostosConfig }) {
                 defaultValue={config[name]}
                 className={inputClass}
               />
-              <p className="mt-1 text-xs text-gray-400">{hint}</p>
+              <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">{hint}</p>
             </div>
           ))}
         </div>
 
-        <div className="pt-2 border-t border-gray-100">
+        <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
           <button
             type="submit"
             disabled={pending}
-            className="inline-flex items-center gap-2 bg-[#1D9E75] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#178a65] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+            className="inline-flex items-center gap-2 bg-[#1D9E75] text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-[#179060] disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
           >
             {pending ? (
               <>

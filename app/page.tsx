@@ -55,27 +55,22 @@ function formatDate(d: string): string {
   return new Date(d + 'T00:00:00').toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
-function TrendIcon({ up }: { up: boolean }) {
-  return up
-    ? <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
-    : <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
-}
-
 export default async function Dashboard() {
   const { lotes, kpis, alerts, financiero } = await getDashboardData()
 
   const polosActivosStr = kpis.polosActivos.toLocaleString('es-ES')
-  const mortSemanaStr = kpis.mortSemana.toLocaleString('es-ES')
-  const mortPctStr = `${kpis.mortPct.toFixed(2)}% sobre pollos activos`
+  const mortSemanaStr   = kpis.mortSemana.toLocaleString('es-ES')
+  const mortPctStr      = `${kpis.mortPct.toFixed(2)}% sobre pollos activos`
+  const costoPorKgStr   = `$${kpis.costoPorKg.toFixed(2)}/kg`
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="min-h-screen bg-[#F5F5F7] dark:bg-zinc-950 flex flex-col">
       <Navbar />
-      <main className="flex-1 px-6 py-6 max-w-screen-xl mx-auto w-full">
+      <main className="flex-1 px-6 py-8 max-w-screen-xl mx-auto w-full">
 
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Resumen operativo · Semana actual</p>
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-zinc-800 dark:text-zinc-100">Dashboard</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">Resumen operativo · Semana actual</p>
         </div>
 
         {/* KPI Cards */}
@@ -85,33 +80,37 @@ export default async function Dashboard() {
             value={polosActivosStr}
             subtitle={`${lotes.length} lote${lotes.length !== 1 ? 's' : ''} en producción`}
             icon={<ChickenIcon />}
-            iconBgClass="bg-green-50"
+            iconBgClass="bg-emerald-50 dark:bg-emerald-900/30"
+            barColorClass="bg-[#1D9E75]"
           />
           <KPICard
             title="Mortalidad Semana"
             value={mortSemanaStr}
             subtitle={mortPctStr}
             icon={<HeartIcon />}
-            iconBgClass="bg-red-50"
+            iconBgClass="bg-red-50 dark:bg-red-900/30"
+            barColorClass="bg-red-500"
           />
           <KPICard
-            title="Costo / kg"
-            value="$1.08"
-            subtitle="Promedio últimas 4 semanas"
+            title="Costo / kg est."
+            value={costoPorKgStr}
+            subtitle="Basado en costos configurados"
             icon={<CurrencyIcon />}
-            iconBgClass="bg-blue-50"
+            iconBgClass="bg-blue-50 dark:bg-blue-900/30"
+            barColorClass="bg-blue-500"
           />
           <KPICard
             title="Alimento Semana"
             value={formatToneladas(kpis.alimentacionSemanaKg)}
             subtitle="Consumo total de concentrado"
             icon={<GrainIcon />}
-            iconBgClass="bg-amber-50"
+            iconBgClass="bg-amber-50 dark:bg-amber-900/30"
+            barColorClass="bg-amber-500"
           />
         </div>
 
         {/* Lotes + Alertas */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
           <div className="lg:col-span-2">
             <LotesTable lotes={lotes} />
           </div>
@@ -121,20 +120,19 @@ export default async function Dashboard() {
         </div>
 
         {/* Weight Curve */}
-        <WeightCurveTable />
+        <div className="mb-6">
+          <WeightCurveTable />
+        </div>
 
         {/* Financial Summary */}
-        <div className="mt-6">
+        <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-xl font-bold text-gray-800">Resumen financiero</h2>
-              <p className="text-sm text-gray-500 mt-0.5">Lotes activos · Costos reales y proyección de ingresos</p>
+              <h2 className="text-xl font-bold text-zinc-800 dark:text-zinc-100">Resumen financiero</h2>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">Lotes activos · Costos reales y proyección de ingresos</p>
             </div>
             {!financiero.config && (
-              <Link
-                href="/configuracion"
-                className="text-sm text-[#1D9E75] font-medium hover:underline"
-              >
+              <Link href="/configuracion" className="text-sm text-[#1D9E75] font-medium hover:underline">
                 Configurar precios →
               </Link>
             )}
@@ -142,72 +140,65 @@ export default async function Dashboard() {
 
           {/* Financial KPI cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-              <p className="text-sm text-gray-500 font-medium">Costo total activos</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">{fmt$(financiero.costoTotalActivos)}</p>
-              <p className="text-xs text-gray-400 mt-1">Pollito + alimento + medicina + crianza</p>
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6 shadow-sm">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">Costo total activos</p>
+              <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-100 mt-1">{fmt$(financiero.costoTotalActivos)}</p>
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">Pollito + alimento + medicina + crianza</p>
             </div>
-
-            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-              <p className="text-sm text-gray-500 font-medium">Ingreso proyectado</p>
-              <p className="text-2xl font-bold text-gray-800 mt-1">{fmt$(financiero.ingresoProyectado)}</p>
-              <p className="text-xs text-gray-400 mt-1">
-                {financiero.config
-                  ? `Pollos activos × 2.60 kg × $${financiero.config.precio_venta_kg}/kg`
-                  : 'Configura los precios para ver la proyección'}
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6 shadow-sm">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">Ingreso proyectado</p>
+              <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-100 mt-1">{fmt$(financiero.ingresoProyectado)}</p>
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
+                {financiero.config ? `Pollos × 2.60 kg × $${financiero.config.precio_venta_kg}/kg` : 'Configura los precios para ver la proyección'}
               </p>
             </div>
-
-            <div className={`bg-white rounded-xl border p-5 shadow-sm ${financiero.margenProyectado >= 0 ? 'border-green-200' : 'border-red-200'}`}>
-              <p className="text-sm text-gray-500 font-medium">Margen proyectado</p>
-              <p className={`text-2xl font-bold mt-1 ${financiero.margenProyectado >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+            <div className={`bg-white dark:bg-zinc-900 rounded-2xl border p-6 shadow-sm ${financiero.margenProyectado >= 0 ? 'border-emerald-200 dark:border-emerald-900/50' : 'border-red-200 dark:border-red-900/50'}`}>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">Margen proyectado</p>
+              <p className={`text-2xl font-bold mt-1 ${financiero.margenProyectado >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                 {fmt$(financiero.margenProyectado)}
               </p>
-              <p className={`text-xs mt-1 ${financiero.margenProyectado >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                {financiero.ingresoProyectado > 0
-                  ? `${financiero.margenPct.toFixed(1)}% sobre ingresos proyectados`
-                  : '—'}
+              <p className={`text-xs mt-1 ${financiero.margenProyectado >= 0 ? 'text-emerald-600 dark:text-emerald-500' : 'text-red-500 dark:text-red-400'}`}>
+                {financiero.ingresoProyectado > 0 ? `${financiero.margenPct.toFixed(1)}% sobre ingresos proyectados` : '—'}
               </p>
             </div>
           </div>
 
-          {/* Ventas cerradas table */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-gray-800">Últimas ventas cerradas</h3>
-                <p className="text-sm text-gray-500 mt-0.5">{financiero.ventasCerradas.length} venta{financiero.ventasCerradas.length !== 1 ? 's' : ''} registrada{financiero.ventasCerradas.length !== 1 ? 's' : ''}</p>
-              </div>
+          {/* Ventas cerradas */}
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm overflow-hidden">
+            <div className="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800">
+              <h3 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">Últimas ventas cerradas</h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+                {financiero.ventasCerradas.length} venta{financiero.ventasCerradas.length !== 1 ? 's' : ''} registrada{financiero.ventasCerradas.length !== 1 ? 's' : ''}
+              </p>
             </div>
-
             {financiero.ventasCerradas.length === 0 ? (
-              <p className="px-5 py-10 text-center text-sm text-gray-400">
+              <p className="px-6 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
                 No hay ventas registradas aún. Cierra un lote desde su página de detalle.
               </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-gray-50 text-left">
+                    <tr className="bg-zinc-50 dark:bg-zinc-800/50 text-left">
                       {['Lote', 'Fecha venta', 'Kg netos', 'Ingresos', 'Costo est.', 'Beneficio'].map((h) => (
-                        <th key={h} className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+                        <th key={h} className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider whitespace-nowrap">
                           {h}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                     {financiero.ventasCerradas.map((v: VentaCerrada) => (
-                      <tr key={v.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-4 font-semibold text-gray-800">{v.loteNombre}</td>
-                        <td className="px-5 py-4 text-gray-600 whitespace-nowrap">{formatDate(v.fechaVenta)}</td>
-                        <td className="px-5 py-4 text-gray-800 tabular-nums">
+                      <tr key={v.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                        <td className="px-6 py-4 font-semibold text-zinc-800 dark:text-zinc-100">{v.loteNombre}</td>
+                        <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{formatDate(v.fechaVenta)}</td>
+                        <td className="px-6 py-4 text-zinc-800 dark:text-zinc-100 tabular-nums">
                           {v.pesoNetoKg.toLocaleString('es-ES', { maximumFractionDigits: 0 })} kg
                         </td>
-                        <td className="px-5 py-4 font-medium text-gray-800 tabular-nums">{fmt$(v.ingresos)}</td>
-                        <td className="px-5 py-4 text-gray-500 tabular-nums">{fmt$(v.costoEstimado)}</td>
-                        <td className="px-5 py-4 tabular-nums">
-                          <span className={`font-semibold ${v.beneficio >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                        <td className="px-6 py-4 font-medium text-zinc-800 dark:text-zinc-100 tabular-nums">{fmt$(v.ingresos)}</td>
+                        <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400 tabular-nums">{fmt$(v.costoEstimado)}</td>
+                        <td className="px-6 py-4 tabular-nums">
+                          <span className={`font-semibold ${v.beneficio >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                             {v.beneficio >= 0 ? '+' : ''}{fmt$(v.beneficio)}
                           </span>
                         </td>

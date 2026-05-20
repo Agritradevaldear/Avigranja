@@ -13,43 +13,43 @@ function getSemana(fechaEntrada: string): number {
 
 export default function LotesTable({ lotes }: Props) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-gray-100">
-        <h2 className="text-base font-semibold text-gray-800">Lotes Activos</h2>
-        <p className="text-sm text-gray-500 mt-0.5">
+    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm overflow-hidden">
+      <div className="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800">
+        <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">Lotes Activos</h2>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
           {lotes.length} lote{lotes.length !== 1 ? 's' : ''} en producción
         </p>
       </div>
 
       {lotes.length === 0 ? (
-        <div className="px-5 py-8 text-center text-sm text-gray-400">
+        <div className="px-6 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">
           No hay lotes activos actualmente.
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Lote</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nave</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Pollos</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Semana</th>
-                <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
+              <tr className="bg-zinc-50 dark:bg-zinc-800/50 text-left">
+                {['Lote', 'Nave', 'Pollos', 'Semana', 'Estado'].map((h) => (
+                  <th key={h} className="px-6 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {lotes.map((lote) => (
-                <tr key={lote.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-5 py-4 font-semibold text-gray-800">{lote.nombre}</td>
-                  <td className="px-5 py-4 text-gray-600">{lote.nave}</td>
-                  <td className="px-5 py-4 text-gray-800 font-medium tabular-nums">
+                <tr key={lote.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
+                  <td className="px-6 py-4 font-semibold text-zinc-800 dark:text-zinc-100">{lote.nombre}</td>
+                  <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">{lote.nave}</td>
+                  <td className="px-6 py-4 text-zinc-800 dark:text-zinc-100 font-medium tabular-nums">
                     {lote.num_pollos.toLocaleString('es-ES')}
                   </td>
-                  <td className="px-5 py-4 text-gray-600">
+                  <td className="px-6 py-4 text-zinc-500 dark:text-zinc-400">
                     Semana {getSemana(lote.fecha_entrada)}
                   </td>
-                  <td className="px-5 py-4">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                  <td className="px-6 py-4">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400">
                       Activo
                     </span>
                   </td>

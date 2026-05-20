@@ -6,7 +6,8 @@ import { createMortalidad, type ActionState } from './actions'
 const todayISO = new Date().toISOString().split('T')[0]
 
 const inputClass =
-  'w-full rounded-lg border border-gray-300 px-3.5 py-2.5 text-sm text-gray-800 placeholder-gray-400 ' +
+  'w-full rounded-xl border border-zinc-200 dark:border-zinc-700 px-3.5 py-2.5 text-sm ' +
+  'text-zinc-800 dark:text-zinc-100 bg-white dark:bg-zinc-800 placeholder-zinc-400 dark:placeholder-zinc-500 ' +
   'focus:outline-none focus:ring-2 focus:ring-[#1D9E75] focus:border-transparent transition'
 
 export default function MortalidadForm({ loteId }: { loteId: number }) {
@@ -16,8 +17,8 @@ export default function MortalidadForm({ loteId }: { loteId: number }) {
   )
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-      <h2 className="text-base font-semibold text-gray-800 mb-4">
+    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm p-5">
+      <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-100 mb-4">
         Registrar mortalidad
       </h2>
 
@@ -31,7 +32,7 @@ export default function MortalidadForm({ loteId }: { loteId: number }) {
         )}
 
         <div>
-          <label htmlFor="mort-fecha" className="block text-sm font-medium text-gray-700 mb-1.5">
+          <label htmlFor="mort-fecha" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
             Fecha
           </label>
           <input
@@ -46,7 +47,7 @@ export default function MortalidadForm({ loteId }: { loteId: number }) {
         </div>
 
         <div>
-          <label htmlFor="mort-cantidad" className="block text-sm font-medium text-gray-700 mb-1.5">
+          <label htmlFor="mort-cantidad" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
             Cantidad de bajas
           </label>
           <input
@@ -61,7 +62,7 @@ export default function MortalidadForm({ loteId }: { loteId: number }) {
         </div>
 
         <div>
-          <label htmlFor="mort-obs" className="block text-sm font-medium text-gray-700 mb-1.5">
+          <label htmlFor="mort-obs" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
             Observaciones{' '}
             <span className="text-gray-400 font-normal">(opcional)</span>
           </label>
@@ -77,7 +78,7 @@ export default function MortalidadForm({ loteId }: { loteId: number }) {
         <button
           type="submit"
           disabled={pending}
-          className="w-full flex items-center justify-center gap-2 bg-red-500 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+          className="w-full flex items-center justify-center gap-2 bg-red-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
         >
           {pending ? (
             <>

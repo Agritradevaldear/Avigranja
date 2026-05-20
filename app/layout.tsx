@@ -1,33 +1,20 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import type { Metadata } from 'next'
+import './globals.css'
+import Providers from './providers'
 
 export const metadata: Metadata = {
-  title: "AviGranja — Gestión de Granja",
-  description: "Dashboard de gestión para granja de pollos de engorde",
-};
+  title: 'AviGranja — Gestión de Granja',
+  description: 'Dashboard de gestión para granja de pollos de engorde',
+}
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="es" suppressHydrationWarning className="h-full">
+      <body className="min-h-full flex flex-col bg-[#F5F5F7] dark:bg-zinc-950 transition-colors">
+        <Providers>{children}</Providers>
+      </body>
     </html>
-  );
+  )
 }

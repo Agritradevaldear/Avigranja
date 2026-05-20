@@ -4,22 +4,22 @@ import NuevoLoteForm from './NuevoLoteForm'
 
 export default function NuevoLotePage() {
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+    <div className="min-h-screen bg-[#F5F5F7] dark:bg-zinc-950 flex flex-col">
       <Navbar />
-      <main className="flex-1 px-6 py-6 max-w-screen-xl mx-auto w-full">
+      <main className="flex-1 px-6 py-8 max-w-screen-xl mx-auto w-full">
 
-        <div className="mb-6">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
+        <div className="mb-8">
+          <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400 mb-3">
             <Link href="/lotes" className="hover:text-[#1D9E75] transition-colors">Lotes</Link>
             <span>›</span>
-            <span className="text-gray-700 font-medium">Nuevo lote</span>
+            <span className="text-zinc-700 dark:text-zinc-200 font-medium">Nuevo lote</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">Registrar nuevo lote</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Completa los datos del nuevo ciclo de producción.</p>
+          <h1 className="text-2xl font-bold text-zinc-800 dark:text-zinc-100">Registrar nuevo lote</h1>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">Completa los datos del nuevo ciclo de producción.</p>
         </div>
 
         <div className="max-w-lg">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm p-6">
             <NuevoLoteForm />
           </div>
         </div>

@@ -28,7 +28,7 @@ export default function DeleteButton({ action }: { action: () => Promise<void> }
       onClick={() => startTransition(() => action())}
       disabled={pending}
       title="Borrar registro"
-      className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      className="p-1.5 rounded-lg text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
     >
       {pending
         ? <Spinner className="w-4 h-4 animate-spin" />
