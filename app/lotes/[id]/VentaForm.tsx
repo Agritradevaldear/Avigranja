@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { createVenta, type ActionState } from './actions'
 
 const todayISO = new Date().toISOString().split('T')[0]
@@ -10,8 +10,54 @@ const inputClass =
   'text-zinc-800 dark:text-zinc-100 bg-white dark:bg-zinc-800 placeholder-zinc-400 dark:placeholder-zinc-500 ' +
   'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition'
 
-export default function VentaForm({ loteId }: { loteId: number }) {
+interface Props {
+  loteId: number
+  polosVivos: number
+}
+
+function fmt$(n: number) {
+  return '$' + n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+export default function VentaForm({ loteId, polosVivos }: Props) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createVenta, null)
+
+  const [pollosVendidos, setPollosVendidos] = useState(String(polosVivos))
+  const [pesoMedioKg, setPesoMedioKg]       = useState('')
+  const [pesoTotalKg, setPesoTotalKg]       = useState('')
+  const [mermaKg, setMermaKg]               = useState('0')
+  const [precioKg, setPrecioKg]             = useState('')
+
+  function handlePollosChange(val: string) {
+    setPollosVendidos(val)
+    const pollos = parseInt(val, 10)
+    const medio = parseFloat(pesoMedioKg)
+    if (pollos > 0 && medio > 0) setPesoTotalKg((pollos * medio).toFixed(1))
+  }
+
+  function handlePesoMedioChange(val: string) {
+    setPesoMedioKg(val)
+    const pollos = parseInt(pollosVendidos, 10)
+    const medio = parseFloat(val)
+    if (pollos > 0 && medio > 0) setPesoTotalKg((pollos * medio).toFixed(1))
+  }
+
+  function handlePesoTotalChange(val: string) {
+    setPesoTotalKg(val)
+    const total = parseFloat(val)
+    const pollos = parseInt(pollosVendidos, 10)
+    if (total > 0 && pollos > 0) setPesoMedioKg((total / pollos).toFixed(3))
+  }
+
+  const totalNum  = parseFloat(pesoTotalKg)
+  const precioNum = parseFloat(precioKg)
+  const mermaNum  = parseFloat(mermaKg) || 0
+  const pollosNum = parseInt(pollosVendidos, 10)
+  const medioNum  = parseFloat(pesoMedioKg)
+  const showSummary = totalNum > 0 && precioNum > 0
+
+  const pesoNeto      = showSummary ? Math.max(0, totalNum - mermaNum) : 0
+  const totalIngresos = showSummary ? pesoNeto * precioNum : 0
 
   return (
     <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-indigo-200/60 dark:border-indigo-900/40 shadow-sm p-5">
@@ -39,7 +85,7 @@ export default function VentaForm({ loteId }: { loteId: number }) {
           </p>
         )}
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2 sm:col-span-1">
             <label htmlFor="venta-fecha" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
               Fecha de venta
@@ -68,7 +114,40 @@ export default function VentaForm({ loteId }: { loteId: number }) {
             />
           </div>
 
-          <div>
+          <div className="col-span-2 sm:col-span-1">
+            <label htmlFor="venta-pollos" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+              Pollos vendidos
+            </label>
+            <input
+              id="venta-pollos"
+              name="num_pollos_vendidos"
+              type="number"
+              required
+              min={1}
+              value={pollosVendidos}
+              onChange={(e) => handlePollosChange(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+
+          <div className="col-span-2 sm:col-span-1">
+            <label htmlFor="venta-peso-medio" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+              Peso medio canal <span className="text-gray-400 font-normal">(kg/pollo)</span>
+            </label>
+            <input
+              id="venta-peso-medio"
+              name="peso_medio_kg"
+              type="number"
+              min={0.1}
+              step={0.001}
+              placeholder="Ej: 2.450"
+              value={pesoMedioKg}
+              onChange={(e) => handlePesoMedioChange(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+
+          <div className="col-span-2 sm:col-span-1">
             <label htmlFor="venta-peso" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
               Peso total en canal (kg)
             </label>
@@ -80,11 +159,13 @@ export default function VentaForm({ loteId }: { loteId: number }) {
               min={0.1}
               step={0.1}
               placeholder="Ej: 18500"
+              value={pesoTotalKg}
+              onChange={(e) => handlePesoTotalChange(e.target.value)}
               className={inputClass}
             />
           </div>
 
-          <div>
+          <div className="col-span-2 sm:col-span-1">
             <label htmlFor="venta-merma" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
               Merma en transporte (kg)
             </label>
@@ -94,7 +175,8 @@ export default function VentaForm({ loteId }: { loteId: number }) {
               type="number"
               min={0}
               step={0.1}
-              defaultValue={0}
+              value={mermaKg}
+              onChange={(e) => setMermaKg(e.target.value)}
               className={inputClass}
             />
           </div>
@@ -111,10 +193,52 @@ export default function VentaForm({ loteId }: { loteId: number }) {
               min={0.01}
               step={0.001}
               placeholder="Ej: 1.20"
+              value={precioKg}
+              onChange={(e) => setPrecioKg(e.target.value)}
               className={inputClass}
             />
           </div>
         </div>
+
+        {/* Live preview */}
+        {showSummary && (
+          <div className="rounded-xl bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/40 px-4 py-3 space-y-1.5">
+            <p className="text-xs font-semibold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider">
+              Resumen de la operación
+            </p>
+            {!isNaN(pollosNum) && !isNaN(medioNum) && medioNum > 0 ? (
+              <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                <span className="font-medium">{pollosNum.toLocaleString('es-ES')} pollos</span>
+                {' × '}
+                <span className="font-medium">{medioNum.toFixed(3)} kg/pollo</span>
+                {' = '}
+                <span className="font-semibold">{totalNum.toLocaleString('es-ES', { maximumFractionDigits: 1 })} kg</span>
+              </p>
+            ) : (
+              <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                Peso total: <span className="font-semibold">{totalNum.toLocaleString('es-ES', { maximumFractionDigits: 1 })} kg</span>
+              </p>
+            )}
+            {mermaNum > 0 && (
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                {'− merma '}
+                {mermaNum.toLocaleString('es-ES', { maximumFractionDigits: 1 })} kg
+                {' = peso neto '}
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                  {pesoNeto.toLocaleString('es-ES', { maximumFractionDigits: 1 })} kg
+                </span>
+              </p>
+            )}
+            <div className="pt-1.5 border-t border-indigo-200 dark:border-indigo-800/40 flex items-baseline justify-between">
+              <span className="text-sm text-zinc-600 dark:text-zinc-400">
+                {pesoNeto.toLocaleString('es-ES', { maximumFractionDigits: 1 })} kg × {fmt$(precioNum)}/kg
+              </span>
+              <span className="text-base font-bold text-indigo-700 dark:text-indigo-400">
+                {fmt$(totalIngresos)}
+              </span>
+            </div>
+          </div>
+        )}
 
         <button
           type="submit"

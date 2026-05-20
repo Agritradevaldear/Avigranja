@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Navbar from '@/app/components/Navbar'
 import { supabase } from '@/lib/supabase'
-import type { Lote, Mortalidad, Pesaje, Alimentacion, GastoLote } from '@/lib/supabase'
+import type { Lote, Mortalidad, Pesaje, Alimentacion, GastoLote, CostosConfig, Venta } from '@/lib/supabase'
 import MortalidadForm from './MortalidadForm'
 import PesajeForm from './PesajeForm'
 import AlimentacionForm from './AlimentacionForm'
@@ -23,6 +23,18 @@ const ROSS_ALIM_PER_1000: Record<number, number> = {
   1: 200, 2: 350, 3: 550, 4: 800, 5: 900, 6: 500,
 }
 
+const PESO_SALIDA_KG = 2.60
+
+const CATEGORIAS_PL = ['Pienso', 'Medicina', 'Crianza', 'Concha de arroz', 'Otros'] as const
+
+const CATEGORIA_BADGE: Record<string, string> = {
+  'Pienso':          'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400',
+  'Medicina':        'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400',
+  'Crianza':         'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400',
+  'Concha de arroz': 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400',
+  'Otros':           'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400',
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getSemana(fechaEntrada: string) {
@@ -36,6 +48,10 @@ function formatDate(dateStr: string) {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('es-ES', {
     day: '2-digit', month: 'short', year: 'numeric',
   })
+}
+
+function fmt$(n: number) {
+  return '$' + n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 function ComplianceBar({ pct }: { pct: number }) {
@@ -90,16 +106,14 @@ export default async function LoteDetallePage({
   const loteId = parseInt(id, 10)
   if (isNaN(loteId)) notFound()
 
-  const [loteRes, mortRes, pesajesRes, alimentacionRes, gastosRes] = await Promise.all([
+  const [loteRes, mortRes, pesajesRes, alimentacionRes, gastosRes, configRes, ventaRes] = await Promise.all([
     supabase.from('lotes').select('*').eq('id', loteId).single(),
-    supabase.from('mortalidad').select('*').eq('lote_id', loteId)
-      .order('fecha', { ascending: false }).limit(10),
-    supabase.from('pesajes').select('*').eq('lote_id', loteId)
-      .order('semana', { ascending: true }),
-    supabase.from('alimentacion').select('*').eq('lote_id', loteId)
-      .order('semana', { ascending: true }),
-    supabase.from('gastos_lote').select('*').eq('lote_id', loteId)
-      .order('fecha', { ascending: false }),
+    supabase.from('mortalidad').select('*').eq('lote_id', loteId).order('fecha', { ascending: false }),
+    supabase.from('pesajes').select('*').eq('lote_id', loteId).order('semana', { ascending: true }),
+    supabase.from('alimentacion').select('*').eq('lote_id', loteId).order('semana', { ascending: true }),
+    supabase.from('gastos_lote').select('*').eq('lote_id', loteId).order('fecha', { ascending: false }),
+    supabase.from('costos_config').select('*').limit(1),
+    supabase.from('ventas').select('*').eq('lote_id', loteId).order('created_at', { ascending: false }).limit(1),
   ])
 
   if (!loteRes.data) notFound()
@@ -109,18 +123,64 @@ export default async function LoteDetallePage({
   const pesajes      = (pesajesRes.data     ?? []) as Pesaje[]
   const alimentacion = (alimentacionRes.data ?? []) as Alimentacion[]
   const gastos       = (gastosRes.data      ?? []) as GastoLote[]
+  const config       = ((configRes.data as CostosConfig[] | null)?.[0]) ?? null
+  const ventaReal    = ((ventaRes.data ?? []) as Venta[])[0] ?? null
 
   const semanaActual = getSemana(lote.fecha_entrada)
   const daysActive   = Math.floor(
     (Date.now() - new Date(lote.fecha_entrada + 'T00:00:00').getTime()) / 86_400_000,
   )
-  const totalMort = mortalidad.reduce((s, r) => s + r.cantidad, 0)
+  const totalMort  = mortalidad.reduce((s, r) => s + r.cantidad, 0)
+  const polosVivos = Math.max(0, lote.num_pollos - totalMort)
+
+  // ─── Gastos aggregations ─────────────────────────────────────────────────────
+  const totalGastos = gastos.reduce((s, g) => s + g.importe, 0)
+  const byCategoria = gastos.reduce<Record<string, number>>((acc, g) => {
+    acc[g.categoria] = (acc[g.categoria] ?? 0) + g.importe
+    return acc
+  }, {})
+
+  // ─── P&L calculations ─────────────────────────────────────────────────────────
+  const useRealGastos = gastos.length > 0
+  const feedTotal = alimentacion.reduce((s, a) => s + a.consumo_real_kg, 0)
+
+  let costoTotal: number
+  let costBreakdown: Record<string, number>
+
+  if (useRealGastos) {
+    costoTotal = totalGastos
+    costBreakdown = { ...byCategoria }
+  } else if (config) {
+    const pienso   = feedTotal * config.precio_alimento_kg
+    const medicina = lote.num_pollos * config.medicina_por_pollo
+    const crianza  = lote.num_pollos * (config.crianza_entrada_por_pollo + config.crianza_salida_por_pollo)
+    const otros    = lote.num_pollos * config.precio_pollito
+    costoTotal = pienso + medicina + crianza + otros
+    costBreakdown = { 'Pienso': pienso, 'Medicina': medicina, 'Crianza': crianza, 'Concha de arroz': 0, 'Otros': otros }
+  } else {
+    costoTotal = 0
+    costBreakdown = {}
+  }
+
+  const isFinalizadoConVenta = lote.estado === 'finalizado' && ventaReal !== null
+  const ingresos = isFinalizadoConVenta && ventaReal
+    ? (ventaReal.peso_total_kg - ventaReal.merma_kg) * ventaReal.precio_kg
+    : config ? polosVivos * PESO_SALIDA_KG * config.precio_venta_kg : 0
+
+  const beneficio  = ingresos - costoTotal
+  const margenPct  = ingresos > 0 ? (beneficio / ingresos) * 100 : 0
+  const pesoNetoVenta = isFinalizadoConVenta && ventaReal ? ventaReal.peso_total_kg - ventaReal.merma_kg : 0
+  const costoPorKgPL  = isFinalizadoConVenta && pesoNetoVenta > 0
+    ? costoTotal / pesoNetoVenta
+    : config && polosVivos > 0 ? costoTotal / (polosVivos * PESO_SALIDA_KG) : 0
 
   const estadoColors: Record<string, string> = {
     activo:     'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400',
     finalizado: 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400',
     cancelado:  'bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400',
   }
+
+  const mortalidadDisplay = mortalidad.slice(0, 10)
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -164,7 +224,7 @@ export default async function LoteDetallePage({
           ))}
         </div>
 
-        {/* Forms — 3 columns */}
+        {/* Registration forms — 3 columns */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <MortalidadForm   loteId={loteId} />
           <PesajeForm       loteId={loteId} />
@@ -178,7 +238,11 @@ export default async function LoteDetallePage({
           <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-white/60 dark:border-zinc-700/50 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
               <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">Historial de mortalidad</h2>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">Últimas 10 entradas</p>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+                {mortalidad.length > 10
+                  ? `Últimas 10 de ${mortalidad.length} · Total acumulado: ${totalMort.toLocaleString('es-ES')}`
+                  : `${mortalidad.length} entrada${mortalidad.length !== 1 ? 's' : ''}`}
+              </p>
             </div>
             {mortalidad.length === 0 ? (
               <p className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">Sin registros aún.</p>
@@ -193,7 +257,7 @@ export default async function LoteDetallePage({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                    {mortalidad.map((m) => (
+                    {mortalidadDisplay.map((m) => (
                       <tr key={m.id} className={trClass}>
                         <td className={tdSecondary + ' whitespace-nowrap'}>{formatDate(m.fecha)}</td>
                         <td className="px-5 py-3 font-semibold text-red-600 dark:text-red-400 tabular-nums">
@@ -297,9 +361,7 @@ export default async function LoteDetallePage({
                           {a.consumo_real_kg.toLocaleString('es-ES', { maximumFractionDigits: 1 })} kg
                         </td>
                         <td className={tdSecondary + ' tabular-nums'}>
-                          {objetivo
-                            ? `${objetivo.toLocaleString('es-ES', { maximumFractionDigits: 0 })} kg`
-                            : '—'}
+                          {objetivo ? `${objetivo.toLocaleString('es-ES', { maximumFractionDigits: 0 })} kg` : '—'}
                         </td>
                         <td className="px-5 py-4">
                           {objetivo
@@ -322,99 +384,185 @@ export default async function LoteDetallePage({
         </div>
 
         {/* Gastos por lote */}
-        {(() => {
-          const CATEGORIA_BADGE: Record<string, string> = {
-            'Pienso':          'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400',
-            'Medicina':        'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400',
-            'Crianza':         'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400',
-            'Concha de arroz': 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400',
-            'Otros':           'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400',
-          }
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+          <div>
+            <GastoForm loteId={loteId} />
+          </div>
 
-          const totalGastos = gastos.reduce((s, g) => s + g.importe, 0)
-
-          const byCategoria = gastos.reduce<Record<string, number>>((acc, g) => {
-            acc[g.categoria] = (acc[g.categoria] ?? 0) + g.importe
-            return acc
-          }, {})
-
-          return (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-              {/* Form */}
+          <div className="lg:col-span-2 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-white/60 dark:border-zinc-700/50 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
               <div>
-                <GastoForm loteId={loteId} />
+                <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">Historial de gastos</h2>
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{gastos.length} registro{gastos.length !== 1 ? 's' : ''}</p>
               </div>
-
-              {/* History table */}
-              <div className="lg:col-span-2 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-white/60 dark:border-zinc-700/50 shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">Historial de gastos</h2>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{gastos.length} registro{gastos.length !== 1 ? 's' : ''}</p>
-                  </div>
-                  {Object.keys(byCategoria).length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 justify-end">
-                      {Object.entries(byCategoria).map(([cat, total]) => (
-                        <span key={cat} className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${CATEGORIA_BADGE[cat] ?? CATEGORIA_BADGE['Otros']}`}>
-                          {cat}: ${total.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+              {Object.keys(byCategoria).length > 0 && (
+                <div className="flex flex-wrap gap-1.5 justify-end">
+                  {Object.entries(byCategoria).map(([cat, total]) => (
+                    <span key={cat} className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${CATEGORIA_BADGE[cat] ?? CATEGORIA_BADGE['Otros']}`}>
+                      {cat}: {fmt$(total)}
+                    </span>
+                  ))}
                 </div>
-
-                {gastos.length === 0 ? (
-                  <p className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">Sin gastos registrados aún.</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-zinc-50 dark:bg-zinc-800/50 text-left">
-                          {['Fecha', 'Categoría', 'Descripción', 'Importe', ''].map((h, i) => (
-                            <th key={i} className={thClass}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                        {gastos.map((g) => (
-                          <tr key={g.id} className={trClass}>
-                            <td className={tdSecondary + ' whitespace-nowrap'}>{formatDate(g.fecha)}</td>
-                            <td className="px-5 py-3">
-                              <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${CATEGORIA_BADGE[g.categoria] ?? CATEGORIA_BADGE['Otros']}`}>
-                                {g.categoria}
-                              </span>
-                            </td>
-                            <td className={tdSecondary + ' text-xs max-w-[200px] truncate'}>
-                              {g.descripcion ?? <span className="italic text-zinc-300 dark:text-zinc-600">—</span>}
-                            </td>
-                            <td className="px-5 py-3 font-semibold text-zinc-800 dark:text-zinc-100 tabular-nums">
-                              ${g.importe.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </td>
-                            <td className="px-3 py-3">
-                              <DeleteButton action={deleteGasto.bind(null, g.id, loteId)} />
-                            </td>
-                          </tr>
-                        ))}
-                        <tr className="bg-zinc-50 dark:bg-zinc-800/50">
-                          <td colSpan={3} className="px-5 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Total</td>
-                          <td className="px-5 py-3 font-bold text-zinc-800 dark:text-zinc-100 tabular-nums">
-                            ${totalGastos.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                          <td />
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
-          )
-        })()}
+
+            {gastos.length === 0 ? (
+              <p className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">Sin gastos registrados aún.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-zinc-50 dark:bg-zinc-800/50 text-left">
+                      {['Fecha', 'Categoría', 'Descripción', 'Importe', ''].map((h, i) => (
+                        <th key={i} className={thClass}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                    {gastos.map((g) => (
+                      <tr key={g.id} className={trClass}>
+                        <td className={tdSecondary + ' whitespace-nowrap'}>{formatDate(g.fecha)}</td>
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${CATEGORIA_BADGE[g.categoria] ?? CATEGORIA_BADGE['Otros']}`}>
+                            {g.categoria}
+                          </span>
+                        </td>
+                        <td className={tdSecondary + ' text-xs max-w-[200px] truncate'}>
+                          {g.descripcion ?? <span className="italic text-zinc-300 dark:text-zinc-600">—</span>}
+                        </td>
+                        <td className="px-5 py-3 font-semibold text-zinc-800 dark:text-zinc-100 tabular-nums">
+                          {fmt$(g.importe)}
+                        </td>
+                        <td className="px-3 py-3">
+                          <DeleteButton action={deleteGasto.bind(null, g.id, loteId)} />
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="bg-zinc-50 dark:bg-zinc-800/50">
+                      <td colSpan={3} className="px-5 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Total</td>
+                      <td className="px-5 py-3 font-bold text-zinc-800 dark:text-zinc-100 tabular-nums">{fmt$(totalGastos)}</td>
+                      <td />
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* P&L Card */}
+        <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-white/60 dark:border-zinc-700/50 shadow-sm p-6 mb-4">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">Resultado económico del lote</h2>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+                {useRealGastos
+                  ? 'Costos de gastos reales registrados'
+                  : config
+                    ? 'Costos estimados de configuración de precios'
+                    : 'Sin configuración de precios'}
+              </p>
+            </div>
+            {isFinalizadoConVenta ? (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">
+                Resultado real
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 uppercase tracking-wide">
+                Proyectado
+              </span>
+            )}
+          </div>
+
+          {/* Main P&L metrics */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+            <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                {isFinalizadoConVenta ? 'Ingresos reales' : 'Ingresos proyectados'}
+              </p>
+              <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-100 mt-1">
+                {ingresos > 0 ? fmt$(ingresos) : '—'}
+              </p>
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
+                {isFinalizadoConVenta && ventaReal
+                  ? `${pesoNetoVenta.toLocaleString('es-ES', { maximumFractionDigits: 0 })} kg × ${fmt$(ventaReal.precio_kg)}/kg`
+                  : config
+                    ? `${polosVivos.toLocaleString('es-ES')} pollos × 2.60 kg × ${fmt$(config.precio_venta_kg)}/kg`
+                    : ''}
+              </p>
+            </div>
+
+            <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4">
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                Costos {useRealGastos ? 'reales' : 'estimados'}
+              </p>
+              <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-100 mt-1">
+                {costoTotal > 0 ? fmt$(costoTotal) : '—'}
+              </p>
+              {isFinalizadoConVenta && costoPorKgPL > 0 && (
+                <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-0.5">
+                  {fmt$(costoPorKgPL)}/kg producido
+                </p>
+              )}
+            </div>
+
+            <div className={`rounded-xl p-4 ${beneficio >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+                Beneficio {isFinalizadoConVenta ? 'real' : 'proyectado'}
+              </p>
+              <p className={`text-2xl font-bold mt-1 ${beneficio >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                {ingresos > 0 || costoTotal > 0
+                  ? `${beneficio >= 0 ? '+' : ''}${fmt$(beneficio)}`
+                  : '—'}
+              </p>
+              {ingresos > 0 && (
+                <p className={`text-xs mt-0.5 ${beneficio >= 0 ? 'text-emerald-600 dark:text-emerald-500' : 'text-red-500 dark:text-red-400'}`}>
+                  {margenPct.toFixed(1)}% margen
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Cost breakdown */}
+          <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
+            <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">
+              Desglose de costos{!useRealGastos && config ? ' (estimado)' : ''}
+            </p>
+            {costoTotal === 0 && !config ? (
+              <p className="text-sm text-zinc-400 dark:text-zinc-500 italic">
+                <Link href="/configuracion" className="text-[#1D9E75] hover:underline">
+                  Configura los precios
+                </Link>
+                {' '}para ver proyecciones de costos.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-8">
+                {CATEGORIAS_PL.map((cat) => {
+                  const val = costBreakdown[cat] ?? 0
+                  return (
+                    <div key={cat} className="flex items-center justify-between text-sm py-1.5 border-b border-zinc-50 dark:border-zinc-800/50">
+                      <span className="text-zinc-500 dark:text-zinc-400">{cat}</span>
+                      <span className={`font-medium tabular-nums ${val > 0 ? 'text-zinc-800 dark:text-zinc-100' : 'text-zinc-300 dark:text-zinc-600'}`}>
+                        {val > 0 ? fmt$(val) : '—'}
+                      </span>
+                    </div>
+                  )
+                })}
+                <div className="col-span-2 sm:col-span-3 flex items-center justify-between text-sm py-2 mt-1 border-t border-zinc-200 dark:border-zinc-700 font-semibold">
+                  <span className="text-zinc-700 dark:text-zinc-300">Total costos</span>
+                  <span className="text-zinc-800 dark:text-zinc-100 tabular-nums">
+                    {costoTotal > 0 ? fmt$(costoTotal) : '—'}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Venta / cierre de lote */}
         {lote.estado === 'activo' && (
-          <div className="max-w-xl">
-            <VentaForm loteId={loteId} />
+          <div className="max-w-2xl">
+            <VentaForm loteId={loteId} polosVivos={polosVivos} />
           </div>
         )}
 

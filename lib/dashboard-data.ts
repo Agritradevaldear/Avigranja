@@ -80,9 +80,10 @@ export async function getDashboardData(): Promise<DashboardData> {
           weekFeedData:         [] as { consumo_real_kg: number }[],
           pesajesData:          [] as Pesaje[],
           alimentacionActiva:   [] as { lote_id: number; consumo_real_kg: number }[],
+          gastosData:           [] as { lote_id: number; importe: number }[],
         }
       }
-      const [r0, r1, r2, r3, r4] = await Promise.all([
+      const [r0, r1, r2, r3, r4, r5] = await Promise.all([
         supabase.from('mortalidad').select('cantidad').in('lote_id', loteIds),
         supabase.from('mortalidad').select('lote_id, cantidad')
           .gte('fecha', sevenDaysAgo.toISOString().split('T')[0])
@@ -94,6 +95,7 @@ export async function getDashboardData(): Promise<DashboardData> {
           .in('lote_id', loteIds)
           .order('created_at', { ascending: false }),
         supabase.from('alimentacion').select('lote_id, consumo_real_kg').in('lote_id', loteIds),
+        supabase.from('gastos_lote').select('lote_id, importe').in('lote_id', loteIds),
       ])
       return {
         allMortData:        (r0.data ?? []) as { cantidad: number }[],
@@ -101,6 +103,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         weekFeedData:       (r2.data ?? []) as { consumo_real_kg: number }[],
         pesajesData:        (r3.data ?? []) as Pesaje[],
         alimentacionActiva: (r4.data ?? []) as { lote_id: number; consumo_real_kg: number }[],
+        gastosData:         (r5.data ?? []) as { lote_id: number; importe: number }[],
       }
     })(),
     (async () => {
@@ -110,7 +113,13 @@ export async function getDashboardData(): Promise<DashboardData> {
     })(),
   ])
 
-  const { allMortData, weekMortData, weekFeedData, pesajesData, alimentacionActiva } = loteDependent
+  const { allMortData, weekMortData, weekFeedData, pesajesData, alimentacionActiva, gastosData } = loteDependent
+
+  // Real gastos totals per lote (used when available)
+  const gastosByLote: Record<number, number> = {}
+  gastosData.forEach((g) => {
+    gastosByLote[g.lote_id] = (gastosByLote[g.lote_id] ?? 0) + g.importe
+  })
 
   // Feed totals per lote (active + closed, for cost calculation)
   const feedByLote: Record<number, number> = {}
@@ -202,8 +211,13 @@ export async function getDashboardData(): Promise<DashboardData> {
   let costoTotalActivos = 0
   if (config) {
     for (const lote of lotes) {
-      const feedCost = (feedByLote[lote.id] ?? 0) * config.precio_alimento_kg
-      costoTotalActivos += loteBaseCost(lote.num_pollos) + feedCost
+      const gastoReal = gastosByLote[lote.id]
+      if (gastoReal !== undefined && gastoReal > 0) {
+        costoTotalActivos += gastoReal
+      } else {
+        const feedCost = (feedByLote[lote.id] ?? 0) * config.precio_alimento_kg
+        costoTotalActivos += loteBaseCost(lote.num_pollos) + feedCost
+      }
     }
   }
 
