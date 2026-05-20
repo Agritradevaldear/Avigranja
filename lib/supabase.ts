@@ -70,3 +70,13 @@ export interface Venta {
   comprador: string | null
   created_at: string
 }
+
+export interface GastoLote {
+  id: number
+  lote_id: number
+  categoria: 'Pienso' | 'Medicina' | 'Crianza' | 'Concha de arroz' | 'Otros'
+  descripcion: string | null
+  importe: number
+  fecha: string
+  created_at: string
+}

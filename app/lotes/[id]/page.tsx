@@ -2,13 +2,14 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Navbar from '@/app/components/Navbar'
 import { supabase } from '@/lib/supabase'
-import type { Lote, Mortalidad, Pesaje, Alimentacion } from '@/lib/supabase'
+import type { Lote, Mortalidad, Pesaje, Alimentacion, GastoLote } from '@/lib/supabase'
 import MortalidadForm from './MortalidadForm'
 import PesajeForm from './PesajeForm'
 import AlimentacionForm from './AlimentacionForm'
+import GastoForm from './GastoForm'
 import DeleteButton from './DeleteButton'
 import VentaForm from './VentaForm'
-import { deleteMortalidad, deletePesaje, deleteAlimentacion } from './actions'
+import { deleteMortalidad, deletePesaje, deleteAlimentacion, deleteGasto } from './actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -89,7 +90,7 @@ export default async function LoteDetallePage({
   const loteId = parseInt(id, 10)
   if (isNaN(loteId)) notFound()
 
-  const [loteRes, mortRes, pesajesRes, alimentacionRes] = await Promise.all([
+  const [loteRes, mortRes, pesajesRes, alimentacionRes, gastosRes] = await Promise.all([
     supabase.from('lotes').select('*').eq('id', loteId).single(),
     supabase.from('mortalidad').select('*').eq('lote_id', loteId)
       .order('fecha', { ascending: false }).limit(10),
@@ -97,6 +98,8 @@ export default async function LoteDetallePage({
       .order('semana', { ascending: true }),
     supabase.from('alimentacion').select('*').eq('lote_id', loteId)
       .order('semana', { ascending: true }),
+    supabase.from('gastos_lote').select('*').eq('lote_id', loteId)
+      .order('fecha', { ascending: false }),
   ])
 
   if (!loteRes.data) notFound()
@@ -105,6 +108,7 @@ export default async function LoteDetallePage({
   const mortalidad   = (mortRes.data        ?? []) as Mortalidad[]
   const pesajes      = (pesajesRes.data     ?? []) as Pesaje[]
   const alimentacion = (alimentacionRes.data ?? []) as Alimentacion[]
+  const gastos       = (gastosRes.data      ?? []) as GastoLote[]
 
   const semanaActual = getSemana(lote.fecha_entrada)
   const daysActive   = Math.floor(
@@ -316,6 +320,96 @@ export default async function LoteDetallePage({
             </div>
           )}
         </div>
+
+        {/* Gastos por lote */}
+        {(() => {
+          const CATEGORIA_BADGE: Record<string, string> = {
+            'Pienso':          'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400',
+            'Medicina':        'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400',
+            'Crianza':         'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400',
+            'Concha de arroz': 'bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-400',
+            'Otros':           'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400',
+          }
+
+          const totalGastos = gastos.reduce((s, g) => s + g.importe, 0)
+
+          const byCategoria = gastos.reduce<Record<string, number>>((acc, g) => {
+            acc[g.categoria] = (acc[g.categoria] ?? 0) + g.importe
+            return acc
+          }, {})
+
+          return (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+              {/* Form */}
+              <div>
+                <GastoForm loteId={loteId} />
+              </div>
+
+              {/* History table */}
+              <div className="lg:col-span-2 bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-white/60 dark:border-zinc-700/50 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">Historial de gastos</h2>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">{gastos.length} registro{gastos.length !== 1 ? 's' : ''}</p>
+                  </div>
+                  {Object.keys(byCategoria).length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 justify-end">
+                      {Object.entries(byCategoria).map(([cat, total]) => (
+                        <span key={cat} className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${CATEGORIA_BADGE[cat] ?? CATEGORIA_BADGE['Otros']}`}>
+                          {cat}: ${total.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {gastos.length === 0 ? (
+                  <p className="px-5 py-10 text-center text-sm text-zinc-400 dark:text-zinc-500">Sin gastos registrados aún.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-zinc-50 dark:bg-zinc-800/50 text-left">
+                          {['Fecha', 'Categoría', 'Descripción', 'Importe', ''].map((h, i) => (
+                            <th key={i} className={thClass}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                        {gastos.map((g) => (
+                          <tr key={g.id} className={trClass}>
+                            <td className={tdSecondary + ' whitespace-nowrap'}>{formatDate(g.fecha)}</td>
+                            <td className="px-5 py-3">
+                              <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${CATEGORIA_BADGE[g.categoria] ?? CATEGORIA_BADGE['Otros']}`}>
+                                {g.categoria}
+                              </span>
+                            </td>
+                            <td className={tdSecondary + ' text-xs max-w-[200px] truncate'}>
+                              {g.descripcion ?? <span className="italic text-zinc-300 dark:text-zinc-600">—</span>}
+                            </td>
+                            <td className="px-5 py-3 font-semibold text-zinc-800 dark:text-zinc-100 tabular-nums">
+                              ${g.importe.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-3 py-3">
+                              <DeleteButton action={deleteGasto.bind(null, g.id, loteId)} />
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="bg-zinc-50 dark:bg-zinc-800/50">
+                          <td colSpan={3} className="px-5 py-3 text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Total</td>
+                          <td className="px-5 py-3 font-bold text-zinc-800 dark:text-zinc-100 tabular-nums">
+                            ${totalGastos.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </td>
+                          <td />
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Venta / cierre de lote */}
         {lote.estado === 'activo' && (

@@ -23,6 +23,41 @@ export async function deleteAlimentacion(id: number, loteId: number): Promise<vo
   revalidatePath(`/lotes/${loteId}`)
 }
 
+export async function deleteGasto(id: number, loteId: number): Promise<void> {
+  await supabase.from('gastos_lote').delete().eq('id', id)
+  revalidatePath(`/lotes/${loteId}`)
+}
+
+// ─── Gastos ───────────────────────────────────────────────────────────────────
+
+const CATEGORIAS = ['Pienso', 'Medicina', 'Crianza', 'Concha de arroz', 'Otros'] as const
+
+export async function createGasto(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const lote_id     = parseInt(formData.get('lote_id') as string, 10)
+  const categoria   = (formData.get('categoria') as string)?.trim()
+  const descripcion = (formData.get('descripcion') as string)?.trim() || null
+  const importe     = parseFloat(formData.get('importe') as string)
+  const fecha       = (formData.get('fecha') as string)?.trim()
+
+  if (!CATEGORIAS.includes(categoria as typeof CATEGORIAS[number])) {
+    return { error: 'Categoría no válida.' }
+  }
+  if (!fecha) return { error: 'La fecha es obligatoria.' }
+  if (isNaN(importe) || importe <= 0) return { error: 'El importe debe ser un número positivo.' }
+
+  const { error } = await supabase
+    .from('gastos_lote')
+    .insert({ lote_id, categoria, descripcion, importe, fecha })
+
+  if (error) return { error: `Error al guardar: ${error.message}` }
+
+  revalidatePath(`/lotes/${lote_id}`)
+  redirect(`/lotes/${lote_id}`)
+}
+
 // ─── Venta ────────────────────────────────────────────────────────────────────
 
 export async function createVenta(
