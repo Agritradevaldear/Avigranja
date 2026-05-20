@@ -145,22 +145,26 @@ export default async function LoteDetallePage({
   const useRealGastos = gastos.length > 0
   const feedTotal = alimentacion.reduce((s, a) => s + a.consumo_real_kg, 0)
 
+  // Breakdown always uses only real gastos (others show —)
+  const costBreakdown: Record<string, number> = { ...byCategoria }
+
+  // Total: real gastos if any exist, otherwise config estimate as fallback
   let costoTotal: number
-  let costBreakdown: Record<string, number>
+  let costoTotalEsEstimado: boolean
 
   if (useRealGastos) {
     costoTotal = totalGastos
-    costBreakdown = { ...byCategoria }
+    costoTotalEsEstimado = false
   } else if (config) {
     const pollito  = lote.num_pollos * config.precio_pollito
     const pienso   = feedTotal * config.precio_alimento_kg
     const medicina = lote.num_pollos * config.medicina_por_pollo
     const crianza  = lote.num_pollos * (config.crianza_entrada_por_pollo + config.crianza_salida_por_pollo)
     costoTotal = pollito + pienso + medicina + crianza
-    costBreakdown = { 'Pollito': pollito, 'Pienso': pienso, 'Medicina': medicina, 'Crianza': crianza, 'Concha de arroz': 0, 'Otros': 0 }
+    costoTotalEsEstimado = true
   } else {
     costoTotal = 0
-    costBreakdown = {}
+    costoTotalEsEstimado = false
   }
 
   const isFinalizadoConVenta = lote.estado === 'finalizado' && ventaReal !== null
@@ -459,8 +463,8 @@ export default async function LoteDetallePage({
               <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
                 {useRealGastos
                   ? 'Costos de gastos reales registrados'
-                  : config
-                    ? 'Costos estimados de configuración de precios'
+                  : costoTotalEsEstimado
+                    ? 'Sin gastos reales · Total estimado de configuración'
                     : 'Sin configuración de precios'}
               </p>
             </div>
@@ -495,7 +499,7 @@ export default async function LoteDetallePage({
 
             <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4">
               <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                Costos {useRealGastos ? 'reales' : 'estimados'}
+                Costos {useRealGastos ? 'reales' : costoTotalEsEstimado ? 'estimados' : ''}
               </p>
               <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-100 mt-1">
                 {costoTotal > 0 ? fmt$(costoTotal) : '—'}
@@ -527,7 +531,7 @@ export default async function LoteDetallePage({
           {/* Cost breakdown */}
           <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
             <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-3">
-              Desglose de costos{!useRealGastos && config ? ' (estimado)' : ''}
+              Desglose de costos
             </p>
             {costoTotal === 0 && !config ? (
               <p className="text-sm text-zinc-400 dark:text-zinc-500 italic">
@@ -550,7 +554,9 @@ export default async function LoteDetallePage({
                   )
                 })}
                 <div className="col-span-2 sm:col-span-3 flex items-center justify-between text-sm py-2 mt-1 border-t border-zinc-200 dark:border-zinc-700 font-semibold">
-                  <span className="text-zinc-700 dark:text-zinc-300">Total costos</span>
+                  <span className="text-zinc-700 dark:text-zinc-300">
+                    Total costos{costoTotalEsEstimado ? ' (estimado)' : ''}
+                  </span>
                   <span className="text-zinc-800 dark:text-zinc-100 tabular-nums">
                     {costoTotal > 0 ? fmt$(costoTotal) : '—'}
                   </span>

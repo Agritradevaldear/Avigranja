@@ -42,13 +42,19 @@ export async function createLote(
 
   // Auto-register pollito acquisition cost
   if (!isNaN(precio_pollito) && precio_pollito > 0) {
-    await supabase.from('gastos_lote').insert({
+    const { error: gastoError } = await supabase.from('gastos_lote').insert({
       lote_id:     loteData.id,
       categoria:   'Pollito',
       descripcion: 'Coste de adquisición de pollitos',
       importe:     num_pollos * precio_pollito,
       fecha:       fecha_entrada,
     })
+    if (gastoError) {
+      // Lote already created — surface the gastos failure rather than silently losing it
+      return {
+        error: `Lote creado (id ${loteData.id}), pero falló el registro del gasto de pollitos: ${gastoError.message}. Revisa que el constraint SQL de gastos_lote incluya 'Pollito'.`,
+      }
+    }
   }
 
   revalidatePath('/lotes')
