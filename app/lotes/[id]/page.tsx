@@ -119,7 +119,7 @@ export default async function LoteDetallePage({
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] dark:bg-zinc-950 flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1 px-6 py-8 max-w-screen-xl mx-auto w-full">
 
@@ -153,7 +153,7 @@ export default async function LoteDetallePage({
             { label: 'Pollos iniciales', value: lote.num_pollos.toLocaleString('es-ES') },
             { label: 'Mortalidad acum.', value: totalMort.toLocaleString('es-ES') },
           ].map(({ label, value }) => (
-            <div key={label} className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm px-4 py-4">
+            <div key={label} className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm rounded-2xl border border-white/60 dark:border-zinc-700/50 shadow-sm px-4 py-4">
               <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">{label}</p>
               <p className="text-lg font-bold text-zinc-800 dark:text-zinc-100 mt-0.5">{value}</p>
             </div>
@@ -171,7 +171,7 @@ export default async function LoteDetallePage({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
 
           {/* Mortalidad history */}
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm overflow-hidden">
+          <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-white/60 dark:border-zinc-700/50 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
               <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">Historial de mortalidad</h2>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">Últimas 10 entradas</p>
@@ -210,7 +210,7 @@ export default async function LoteDetallePage({
           </div>
 
           {/* Pesajes vs Ross 308 */}
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm overflow-hidden">
+          <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-white/60 dark:border-zinc-700/50 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
               <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">Curva de peso vs Ross 308</h2>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
@@ -259,7 +259,7 @@ export default async function LoteDetallePage({
         </div>
 
         {/* Alimentación vs Ross 308 — full width */}
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm overflow-hidden mb-4">
+        <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-white/60 dark:border-zinc-700/50 shadow-sm overflow-hidden mb-4">
           <div className="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
             <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">Consumo de alimento vs Ross 308</h2>
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">

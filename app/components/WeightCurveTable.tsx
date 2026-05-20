@@ -23,7 +23,7 @@ function DiffBadge({ real, standard }: { real: number; standard: number }) {
 
 export default function WeightCurveTable() {
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm overflow-hidden">
+    <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-white/60 dark:border-zinc-700/50 shadow-sm overflow-hidden">
       <div className="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 flex items-start justify-between">
         <div>
           <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">Curva de Peso — Lote 08</h2>

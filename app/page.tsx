@@ -64,7 +64,7 @@ export default async function Dashboard() {
   const costoPorKgStr   = `$${kpis.costoPorKg.toFixed(2)}/kg`
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] dark:bg-zinc-950 flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1 px-6 py-8 max-w-screen-xl mx-auto w-full">
 
@@ -140,19 +140,19 @@ export default async function Dashboard() {
 
           {/* Financial KPI cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6 shadow-sm">
+            <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-white/60 dark:border-zinc-700/50 p-6 shadow-sm">
               <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">Costo total activos</p>
               <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-100 mt-1">{fmt$(financiero.costoTotalActivos)}</p>
               <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">Pollito + alimento + medicina + crianza</p>
             </div>
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 p-6 shadow-sm">
+            <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-white/60 dark:border-zinc-700/50 p-6 shadow-sm">
               <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">Ingreso proyectado</p>
               <p className="text-2xl font-bold text-zinc-800 dark:text-zinc-100 mt-1">{fmt$(financiero.ingresoProyectado)}</p>
               <p className="text-xs text-zinc-400 dark:text-zinc-500 mt-1">
                 {financiero.config ? `Pollos × 2.60 kg × $${financiero.config.precio_venta_kg}/kg` : 'Configura los precios para ver la proyección'}
               </p>
             </div>
-            <div className={`bg-white dark:bg-zinc-900 rounded-2xl border p-6 shadow-sm ${financiero.margenProyectado >= 0 ? 'border-emerald-200 dark:border-emerald-900/50' : 'border-red-200 dark:border-red-900/50'}`}>
+            <div className={`bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border p-6 shadow-sm ${financiero.margenProyectado >= 0 ? 'border-emerald-200/60 dark:border-emerald-900/30' : 'border-red-200/60 dark:border-red-900/30'}`}>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 font-medium">Margen proyectado</p>
               <p className={`text-2xl font-bold mt-1 ${financiero.margenProyectado >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                 {fmt$(financiero.margenProyectado)}
@@ -164,7 +164,7 @@ export default async function Dashboard() {
           </div>
 
           {/* Ventas cerradas */}
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm overflow-hidden">
+          <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-white/60 dark:border-zinc-700/50 shadow-sm overflow-hidden">
             <div className="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800">
               <h3 className="text-base font-semibold text-zinc-800 dark:text-zinc-100">Últimas ventas cerradas</h3>
               <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">

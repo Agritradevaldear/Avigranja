@@ -29,7 +29,7 @@ export default function ConfigForm({ config }: { config: CostosConfig }) {
   const [state, action, pending] = useActionState<ConfigState, FormData>(upsertConfig, null)
 
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm p-6">
+    <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-white/60 dark:border-zinc-700/50 shadow-sm p-6">
       <form action={action} className="space-y-5">
         {'error' in (state ?? {}) && (
           <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded-xl px-3 py-2">

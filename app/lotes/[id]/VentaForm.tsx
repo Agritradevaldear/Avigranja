@@ -14,7 +14,7 @@ export default function VentaForm({ loteId }: { loteId: number }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createVenta, null)
 
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-indigo-200 dark:border-indigo-900/50 shadow-sm p-5">
+    <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-indigo-200/60 dark:border-indigo-900/40 shadow-sm p-5">
       <div className="flex items-start gap-3 mb-4">
         <div className="p-2 rounded-lg bg-indigo-50 shrink-0">
           <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

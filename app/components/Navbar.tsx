@@ -57,7 +57,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 backdrop-blur-xl bg-white/70 dark:bg-black/50 border-b border-black/5 dark:border-white/10">
+    <nav className="sticky top-0 z-50 backdrop-blur-2xl bg-white/60 dark:bg-zinc-900/50 shadow-sm border-b border-white/40 dark:border-white/10">
       <div className="max-w-screen-xl mx-auto px-6 py-3 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
           <div className="w-8 h-8 bg-[#1D9E75] rounded-lg flex items-center justify-center shadow-sm">

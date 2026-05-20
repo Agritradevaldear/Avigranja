@@ -35,7 +35,7 @@ export default async function LotesPage() {
   const activos = lotes?.filter((l) => l.estado === 'activo').length ?? 0
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] dark:bg-zinc-950 flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1 px-6 py-8 max-w-screen-xl mx-auto w-full">
 
@@ -64,7 +64,7 @@ export default async function LotesPage() {
           </div>
         )}
 
-        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm overflow-hidden">
+        <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-white/60 dark:border-zinc-700/50 shadow-sm overflow-hidden">
           {!lotes?.length && !error ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-3">

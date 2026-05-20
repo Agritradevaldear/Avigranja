@@ -28,7 +28,7 @@ export default async function ConfiguracionPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] dark:bg-zinc-950 flex flex-col">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
       <main className="flex-1 px-6 py-8 max-w-screen-xl mx-auto w-full">
 
@@ -42,7 +42,7 @@ export default async function ConfiguracionPage() {
         {/* Summary chips */}
         <div className="flex flex-wrap gap-2 mb-8">
           {chips.map(({ label, value }) => (
-            <div key={label} className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-100 dark:border-zinc-800 shadow-sm px-4 py-2 text-sm">
+            <div key={label} className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-sm rounded-xl border border-white/60 dark:border-zinc-700/50 shadow-sm px-4 py-2 text-sm">
               <span className="text-zinc-500 dark:text-zinc-400">{label}: </span>
               <span className="font-semibold text-zinc-800 dark:text-zinc-100">{value}</span>
             </div>

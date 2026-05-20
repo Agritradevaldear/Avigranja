@@ -4,18 +4,11 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #F5F5F7;
   --foreground: #1d1d1f;
 }
 
 .dark {
-  --background: #0A0A0A;
   --foreground: #f5f5f7;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
 }
 
 html {
@@ -24,8 +17,15 @@ html {
 }
 
 body {
-  background: var(--background);
   color: var(--foreground);
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
     system-ui, ui-sans-serif, sans-serif;
+  /* Gradient background so glass cards have something to blur through */
+  background: linear-gradient(135deg, #ecfdf5 0%, #f9fafb 45%, #eff6ff 100%);
+  background-attachment: fixed;
+}
+
+.dark body {
+  background: linear-gradient(135deg, #09090b 0%, #18181b 60%, rgb(5 46 22 / 0.18) 100%);
+  background-attachment: fixed;
 }

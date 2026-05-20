@@ -12,7 +12,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" suppressHydrationWarning className="h-full">
-      <body className="min-h-full flex flex-col bg-[#F5F5F7] dark:bg-zinc-950 transition-colors">
+      <body className="min-h-full flex flex-col transition-colors">
         <Providers>{children}</Providers>
       </body>
     </html>

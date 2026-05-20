@@ -17,7 +17,7 @@ export default function MortalidadForm({ loteId }: { loteId: number }) {
   )
 
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800 shadow-sm p-5">
+    <div className="bg-white/80 dark:bg-zinc-900/70 backdrop-blur-md rounded-2xl border border-white/60 dark:border-zinc-700/50 shadow-sm p-5">
       <h2 className="text-base font-semibold text-zinc-800 dark:text-zinc-100 mb-4">
         Registrar mortalidad
       </h2>
