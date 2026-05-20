@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import type { Lote, CostosConfig, Venta } from './supabase'
+import type { Lote, CostosConfig, Venta, Pesaje } from './supabase'
 
 export type AlertSeverity = 'alta' | 'media' | 'info'
 
@@ -42,6 +42,7 @@ export interface DashboardData {
   kpis: DashboardKPIs
   alerts: DashboardAlert[]
   financiero: FinancialSummary
+  pesajesPorLote: Record<number, Pesaje[]>
 }
 
 type VentaWithLote = Venta & { lotes: { nombre: string; num_pollos: number } | null }
@@ -77,7 +78,7 @@ export async function getDashboardData(): Promise<DashboardData> {
           allMortData:          [] as { cantidad: number }[],
           weekMortData:         [] as { lote_id: number; cantidad: number }[],
           weekFeedData:         [] as { consumo_real_kg: number }[],
-          pesajesData:          [] as { lote_id: number; created_at: string }[],
+          pesajesData:          [] as Pesaje[],
           alimentacionActiva:   [] as { lote_id: number; consumo_real_kg: number }[],
         }
       }
@@ -89,7 +90,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         supabase.from('alimentacion').select('consumo_real_kg')
           .gte('created_at', sevenDaysAgo.toISOString())
           .in('lote_id', loteIds),
-        supabase.from('pesajes').select('lote_id, created_at')
+        supabase.from('pesajes').select('*')
           .in('lote_id', loteIds)
           .order('created_at', { ascending: false }),
         supabase.from('alimentacion').select('lote_id, consumo_real_kg').in('lote_id', loteIds),
@@ -98,7 +99,7 @@ export async function getDashboardData(): Promise<DashboardData> {
         allMortData:        (r0.data ?? []) as { cantidad: number }[],
         weekMortData:       (r1.data ?? []) as { lote_id: number; cantidad: number }[],
         weekFeedData:       (r2.data ?? []) as { consumo_real_kg: number }[],
-        pesajesData:        (r3.data ?? []) as { lote_id: number; created_at: string }[],
+        pesajesData:        (r3.data ?? []) as Pesaje[],
         alimentacionActiva: (r4.data ?? []) as { lote_id: number; consumo_real_kg: number }[],
       }
     })(),
@@ -133,11 +134,15 @@ export async function getDashboardData(): Promise<DashboardData> {
   })
 
   const latestPesajePerLote: Record<number, Date> = {}
+  const pesajesPorLote: Record<number, Pesaje[]> = {}
   pesajesData.forEach((r) => {
     if (!latestPesajePerLote[r.lote_id]) {
       latestPesajePerLote[r.lote_id] = new Date(r.created_at)
     }
+    if (!pesajesPorLote[r.lote_id]) pesajesPorLote[r.lote_id] = []
+    pesajesPorLote[r.lote_id].push(r)
   })
+  Object.values(pesajesPorLote).forEach((arr) => arr.sort((a, b) => a.semana - b.semana))
 
   // ─── Alert generation ────────────────────────────────────────────────────────
   const alerts: DashboardAlert[] = []
@@ -233,5 +238,6 @@ export async function getDashboardData(): Promise<DashboardData> {
     kpis: { polosActivos, mortSemana, mortPct, costoPorKg, alimentacionSemanaKg },
     alerts,
     financiero: { config, costoTotalActivos, ingresoProyectado, margenProyectado, margenPct, ventasCerradas },
+    pesajesPorLote,
   }
 }

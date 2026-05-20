@@ -3,7 +3,7 @@ import Navbar from './components/Navbar'
 import KPICard from './components/KPICard'
 import LotesTable from './components/LotesTable'
 import AlertsPanel from './components/AlertsPanel'
-import WeightCurveTable from './components/WeightCurveTable'
+import WeightCurveAccordion from './components/WeightCurveAccordion'
 import { getDashboardData } from '@/lib/dashboard-data'
 import type { VentaCerrada } from '@/lib/dashboard-data'
 
@@ -56,7 +56,7 @@ function formatDate(d: string): string {
 }
 
 export default async function Dashboard() {
-  const { lotes, kpis, alerts, financiero } = await getDashboardData()
+  const { lotes, kpis, alerts, financiero, pesajesPorLote } = await getDashboardData()
 
   const polosActivosStr = kpis.polosActivos.toLocaleString('es-ES')
   const mortSemanaStr   = kpis.mortSemana.toLocaleString('es-ES')
@@ -121,7 +121,7 @@ export default async function Dashboard() {
 
         {/* Weight Curve */}
         <div className="mb-6">
-          <WeightCurveTable />
+          <WeightCurveAccordion lotes={lotes} pesajesPorLote={pesajesPorLote} />
         </div>
 
         {/* Financial Summary */}
